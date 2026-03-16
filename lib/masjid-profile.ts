@@ -1,5 +1,3 @@
-import type { Prisma } from "@/lib/generated/prisma/client";
-
 export type VisionItem = {
   title: string;
   description: string;
@@ -62,116 +60,12 @@ export type MasjidProfileData = {
   roadmapItems: RoadmapItem[];
 };
 
-type JsonRecord = Record<string, Prisma.JsonValue>;
-
-function isJsonRecord(value: unknown): value is JsonRecord {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function readString(value: unknown, fallback: string) {
   return typeof value === "string" ? value : fallback;
 }
 
 function readNumber(value: unknown, fallback: number | null) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function readStringArray(value: unknown) {
-  if (!Array.isArray(value)) return null;
-  return value.filter((item): item is string => typeof item === "string");
-}
-
-function parseVisionItem(value: unknown): VisionItem | null {
-  if (!isJsonRecord(value)) return null;
-  const title = value.title;
-  const description = value.description;
-
-  if (typeof title !== "string" || typeof description !== "string") {
-    return null;
-  }
-
-  return { title, description };
-}
-
-function parseTimelineItem(value: unknown): TimelineItem | null {
-  if (!isJsonRecord(value)) return null;
-  const period = value.period;
-  const title = value.title;
-  const description = value.description;
-
-  if (
-    typeof period !== "string" ||
-    typeof title !== "string" ||
-    typeof description !== "string"
-  ) {
-    return null;
-  }
-
-  return { period, title, description };
-}
-
-function parseCommitteeItem(value: unknown): CommitteeItem | null {
-  if (!isJsonRecord(value)) return null;
-  const section = value.section;
-  const leads = value.leads;
-  const bullets = readStringArray(value.bullets);
-
-  if (
-    typeof section !== "string" ||
-    typeof leads !== "string" ||
-    bullets === null
-  ) {
-    return null;
-  }
-
-  return { section, leads, bullets };
-}
-
-function parseFundingItem(value: unknown): FundingItem | null {
-  if (!isJsonRecord(value)) return null;
-  const title = value.title;
-  const description = value.description;
-
-  if (typeof title !== "string" || typeof description !== "string") {
-    return null;
-  }
-
-  return { title, description };
-}
-
-function parseRoadmapItem(value: unknown): RoadmapItem | null {
-  if (!isJsonRecord(value)) return null;
-  const phase = value.phase;
-  const title = value.title;
-  const description = value.description;
-
-  if (
-    typeof phase !== "string" ||
-    typeof title !== "string" ||
-    typeof description !== "string"
-  ) {
-    return null;
-  }
-
-  return { phase, title, description };
-}
-
-function parseTypedArray<T>(
-  value: unknown,
-  fallback: T[],
-  parseItem: (item: unknown) => T | null
-) {
-  if (value === null || typeof value === "undefined") {
-    return fallback;
-  }
-
-  if (!Array.isArray(value)) {
-    return fallback;
-  }
-
-  return value
-    .map(parseItem)
-    .filter((item): item is T => item !== null);
 }
 
 export const DEFAULT_MASJID_PROFILE: MasjidProfileData = {
@@ -416,8 +310,8 @@ export function normalizeMasjidProfile(
   const source = (value ?? {}) as Record<string, unknown>;
 
   return {
-    name: readString(source.name, DEFAULT_MASJID_PROFILE.name),
-    description: readString(source.description, DEFAULT_MASJID_PROFILE.description),
+    name: DEFAULT_MASJID_PROFILE.name,
+    description: DEFAULT_MASJID_PROFILE.description,
     address: readString(source.address, DEFAULT_MASJID_PROFILE.address),
     city: readString(source.city, DEFAULT_MASJID_PROFILE.city),
     province: readString(source.province, DEFAULT_MASJID_PROFILE.province),
@@ -436,45 +330,16 @@ export function normalizeMasjidProfile(
     bankName: readString(source.bankName, DEFAULT_MASJID_PROFILE.bankName),
     bankAccount: readString(source.bankAccount, DEFAULT_MASJID_PROFILE.bankAccount),
     bankHolder: readString(source.bankHolder, DEFAULT_MASJID_PROFILE.bankHolder),
-    foundationName: readString(
-      source.foundationName,
-      DEFAULT_MASJID_PROFILE.foundationName
-    ),
-    movementName: readString(source.movementName, DEFAULT_MASJID_PROFILE.movementName),
-    heroTitle: readString(source.heroTitle, DEFAULT_MASJID_PROFILE.heroTitle),
-    heroSubtitle: readString(source.heroSubtitle, DEFAULT_MASJID_PROFILE.heroSubtitle),
-    backgroundText: readString(
-      source.backgroundText,
-      DEFAULT_MASJID_PROFILE.backgroundText
-    ),
-    visionStatement: readString(
-      source.visionStatement,
-      DEFAULT_MASJID_PROFILE.visionStatement
-    ),
-    visionItems: parseTypedArray(
-      source.visionItems,
-      DEFAULT_MASJID_PROFILE.visionItems,
-      parseVisionItem
-    ),
-    timelineItems: parseTypedArray(
-      source.timelineItems,
-      DEFAULT_MASJID_PROFILE.timelineItems,
-      parseTimelineItem
-    ),
-    committeeItems: parseTypedArray(
-      source.committeeItems,
-      DEFAULT_MASJID_PROFILE.committeeItems,
-      parseCommitteeItem
-    ),
-    fundingItems: parseTypedArray(
-      source.fundingItems,
-      DEFAULT_MASJID_PROFILE.fundingItems,
-      parseFundingItem
-    ),
-    roadmapItems: parseTypedArray(
-      source.roadmapItems,
-      DEFAULT_MASJID_PROFILE.roadmapItems,
-      parseRoadmapItem
-    ),
+    foundationName: DEFAULT_MASJID_PROFILE.foundationName,
+    movementName: DEFAULT_MASJID_PROFILE.movementName,
+    heroTitle: DEFAULT_MASJID_PROFILE.heroTitle,
+    heroSubtitle: DEFAULT_MASJID_PROFILE.heroSubtitle,
+    backgroundText: DEFAULT_MASJID_PROFILE.backgroundText,
+    visionStatement: DEFAULT_MASJID_PROFILE.visionStatement,
+    visionItems: DEFAULT_MASJID_PROFILE.visionItems,
+    timelineItems: DEFAULT_MASJID_PROFILE.timelineItems,
+    committeeItems: DEFAULT_MASJID_PROFILE.committeeItems,
+    fundingItems: DEFAULT_MASJID_PROFILE.fundingItems,
+    roadmapItems: DEFAULT_MASJID_PROFILE.roadmapItems,
   };
 }

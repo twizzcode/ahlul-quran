@@ -120,16 +120,6 @@ enum DonationStatus {
   CANCELED
 }
 
-enum DonationType {
-  INFAQ
-  SEDEKAH
-  ZAKAT
-  WAKAF
-  PEMBANGUNAN
-  OPERASIONAL
-  OTHER
-}
-
 // ============================================================
 // Masjid Profile
 // ============================================================
@@ -255,7 +245,6 @@ model Donation {
   donorEmail      String?
   donorPhone      String?
   amount          Float
-  type            DonationType
   message         String?        @db.Text
   isAnonymous     Boolean        @default(false)
   status          DonationStatus @default(PENDING)

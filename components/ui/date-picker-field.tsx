@@ -4,7 +4,7 @@ import { CalendarDays } from "lucide-react";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type DatePickerFieldProps = {
@@ -18,7 +18,8 @@ export function DatePickerField({
   onChange,
   placeholder = "Pilih tanggal",
 }: DatePickerFieldProps) {
-  const label = value ? format(new Date(`${value}T00:00:00`), "dd MMMM yyyy") : placeholder;
+  const selectedDate = value ? new Date(`${value}T00:00:00`) : undefined;
+  const label = selectedDate ? format(selectedDate, "dd MMMM yyyy") : placeholder;
 
   return (
     <Popover>
@@ -32,19 +33,21 @@ export function DatePickerField({
           <CalendarDays className="h-4 w-4 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[320px] space-y-3">
-        <div>
-          <p className="text-sm font-medium">Pilih tanggal</p>
-          <p className="text-xs text-muted-foreground">
-            Tanggal akan dipakai sebagai batas akhir kampanye.
-          </p>
-        </div>
-        <Input type="date" value={value} onChange={(event) => onChange(event.target.value)} />
-        {value ? (
-          <Button type="button" variant="ghost" className="w-full" onClick={() => onChange("")}>
-            Hapus tanggal
-          </Button>
-        ) : null}
+      <PopoverContent className="w-auto p-0">
+        <Calendar
+          mode="single"
+          selected={selectedDate}
+          month={selectedDate}
+          captionLayout="dropdown"
+          onSelect={(date) => {
+            if (!date) {
+              onChange("");
+              return;
+            }
+
+            onChange(format(date, "yyyy-MM-dd"));
+          }}
+        />
       </PopoverContent>
     </Popover>
   );

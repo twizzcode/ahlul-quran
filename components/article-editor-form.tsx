@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -101,7 +102,6 @@ export function ArticleEditorForm({
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [pendingCoverImage, setPendingCoverImage] = useState<PendingUploadImage | null>(null);
   const [pendingContentImages, setPendingContentImages] = useState<PendingUploadImage[]>([]);
   const pendingCoverImageRef = useRef<PendingUploadImage | null>(null);
@@ -183,7 +183,6 @@ export function ArticleEditorForm({
   async function submitArticle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
-    setSuccessMessage("");
 
     if (title.trim().length < 3) {
       setErrorMessage("Judul minimal 3 karakter.");
@@ -286,7 +285,7 @@ export function ArticleEditorForm({
       pendingContentImages.forEach((item) => URL.revokeObjectURL(item.previewUrl));
       setPendingContentImages([]);
 
-      setSuccessMessage(
+      toast.success(
         mode === "create"
           ? `${articleType === "berita" ? "Berita" : "Artikel"} berhasil dibuat.`
           : `${articleType === "berita" ? "Berita" : "Artikel"} berhasil diperbarui.`
@@ -518,11 +517,6 @@ export function ArticleEditorForm({
         {errorMessage ? (
           <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {errorMessage}
-          </div>
-        ) : null}
-        {successMessage ? (
-          <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
-            {successMessage}
           </div>
         ) : null}
 

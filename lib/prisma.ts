@@ -33,9 +33,12 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
-const prisma = global.prisma || new PrismaClient({ adapter });
+const prisma =
+  process.env.NODE_ENV === "production"
+    ? global.prisma || new PrismaClient({ adapter })
+    : new PrismaClient({ adapter });
 
-if (process.env.NODE_ENV !== "production") {
+if (process.env.NODE_ENV === "production" && !global.prisma) {
   global.prisma = prisma;
 }
 

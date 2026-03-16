@@ -66,15 +66,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = createDonationSchema.parse(body);
     const orderId = generateOrderId("DON");
-    const donationType =
-      validated.type as
-        | "INFAQ"
-        | "SEDEKAH"
-        | "ZAKAT"
-        | "WAKAF"
-        | "PEMBANGUNAN"
-        | "OPERASIONAL"
-        | "OTHER";
 
     if (validated.paymentMethod === "BSI_TRANSFER") {
       const profile = await getMasjidProfileData();
@@ -88,7 +79,6 @@ export async function POST(request: NextRequest) {
           donorEmail: validated.donorEmail,
           donorPhone: validated.donorPhone,
           amount: validated.amount,
-          type: donationType,
           message: validated.message,
           isAnonymous: validated.isAnonymous,
           paymentType: "Transfer Bank BSI",
@@ -115,7 +105,6 @@ export async function POST(request: NextRequest) {
       donorName: validated.donorName,
       donorEmail: validated.donorEmail,
       donorPhone: validated.donorPhone,
-      donationType: validated.type,
     });
 
     const donation = await prisma.donation.create({
@@ -125,7 +114,6 @@ export async function POST(request: NextRequest) {
         donorEmail: validated.donorEmail,
         donorPhone: validated.donorPhone,
         amount: validated.amount,
-        type: donationType,
         message: validated.message,
         isAnonymous: validated.isAnonymous,
         paymentType: qrisTransaction.paymentType,

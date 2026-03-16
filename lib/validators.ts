@@ -43,7 +43,6 @@ export const createDonationSchema = z.object({
   donorEmail: z.string().email("Email tidak valid").optional(),
   donorPhone: z.string().optional(),
   amount: z.number().min(10000, "Minimal donasi Rp 10.000"),
-  type: z.enum(["INFAQ", "SEDEKAH", "ZAKAT", "WAKAF", "PEMBANGUNAN", "OPERASIONAL", "OTHER"]),
   message: z.string().optional(),
   isAnonymous: z.boolean().default(false),
   campaignId: z.string().optional(),
@@ -51,14 +50,21 @@ export const createDonationSchema = z.object({
 });
 
 export const createManualDonationSchema = z.object({
-  donorName: z.string().min(2, "Nama minimal 2 karakter"),
+  donorName: z.string().trim().optional(),
   donorEmail: z.string().email("Email tidak valid").optional(),
   donorPhone: z.string().optional(),
   amount: z.number().min(10000, "Minimal donasi Rp 10.000"),
-  type: z.enum(["INFAQ", "SEDEKAH", "ZAKAT", "WAKAF", "PEMBANGUNAN", "OPERASIONAL", "OTHER"]),
   message: z.string().optional(),
   isAnonymous: z.boolean().default(false),
   campaignId: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (!data.isAnonymous && (!data.donorName || data.donorName.trim().length < 2)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["donorName"],
+      message: "Nama minimal 2 karakter",
+    });
+  }
 });
 
 // ============================================================
@@ -85,6 +91,15 @@ export const updateCampaignSchema = createCampaignSchema.partial();
 export const createGallerySchema = z.object({
   title: z.string().min(3, "Judul minimal 3 karakter"),
   description: z.string().optional(),
+  images: z
+    .array(
+      z.object({
+        url: z.string().url("URL gambar tidak valid"),
+        caption: z.string().optional(),
+      })
+    )
+    .min(1, "Minimal 1 gambar")
+    .max(1, "Galeri hanya mendukung 1 gambar per item"),
 });
 
 export const updateGallerySchema = createGallerySchema.partial();
@@ -127,37 +142,7 @@ const optionalNumber = z.preprocess((value) => {
   return value;
 }, z.number().optional());
 
-const visionItemSchema = z.object({
-  title: z.string().min(1),
-  description: z.string().min(1),
-});
-
-const timelineItemSchema = z.object({
-  period: z.string().min(1),
-  title: z.string().min(1),
-  description: z.string().min(1),
-});
-
-const committeeItemSchema = z.object({
-  section: z.string().min(1),
-  leads: z.string().min(1),
-  bullets: z.array(z.string().min(1)),
-});
-
-const fundingItemSchema = z.object({
-  title: z.string().min(1),
-  description: z.string().min(1),
-});
-
-const roadmapItemSchema = z.object({
-  phase: z.string().min(1),
-  title: z.string().min(1),
-  description: z.string().min(1),
-});
-
 export const updateMasjidProfileSchema = z.object({
-  name: z.string().trim().min(3).optional(),
-  description: optionalText,
   address: optionalText,
   city: optionalText,
   province: optionalText,
@@ -176,15 +161,4 @@ export const updateMasjidProfileSchema = z.object({
   bankName: optionalText,
   bankAccount: optionalText,
   bankHolder: optionalText,
-  foundationName: optionalText,
-  movementName: optionalText,
-  heroTitle: optionalText,
-  heroSubtitle: optionalText,
-  backgroundText: optionalText,
-  visionStatement: optionalText,
-  visionItems: z.array(visionItemSchema).optional(),
-  timelineItems: z.array(timelineItemSchema).optional(),
-  committeeItems: z.array(committeeItemSchema).optional(),
-  fundingItems: z.array(fundingItemSchema).optional(),
-  roadmapItems: z.array(roadmapItemSchema).optional(),
 });

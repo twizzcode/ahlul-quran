@@ -137,7 +137,6 @@ export function DonationCheckoutForm({
           donorEmail: donorEmail.trim() || undefined,
           donorPhone: donorPhone.trim() || undefined,
           amount: donationAmount,
-          type: "PEMBANGUNAN",
           message: message.trim() || undefined,
           isAnonymous,
           campaignId: campaign.id,

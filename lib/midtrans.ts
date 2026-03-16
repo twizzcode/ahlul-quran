@@ -31,7 +31,6 @@ export interface MidtransTransactionParams {
   donorName: string;
   donorEmail?: string;
   donorPhone?: string;
-  donationType: string;
   itemName?: string;
   enabledPayments?: string[];
 }
@@ -88,7 +87,7 @@ export async function createSnapTransaction(
         id: params.orderId,
         price: params.amount,
         quantity: 1,
-        name: params.itemName || `Donasi ${params.donationType}`,
+        name: params.itemName || "Donasi Masjid",
       },
     ],
     callbacks: {
@@ -122,7 +121,7 @@ export async function createQrisTransaction(params: MidtransTransactionParams) {
         id: params.orderId,
         price: params.amount,
         quantity: 1,
-        name: params.itemName || `Donasi ${params.donationType}`,
+        name: params.itemName || "Donasi Masjid",
       },
     ],
   });

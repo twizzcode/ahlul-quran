@@ -1,5 +1,8 @@
 import { NextRequest } from "next/server";
+import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { isDashboardRole } from "@/lib/user-roles";
 import { apiSuccess, apiError, apiPaginated } from "@/lib/utils";
 import { createGallerySchema } from "@/lib/validators";
 
@@ -40,13 +43,45 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const headerStore = await headers();
+    const session = await auth.api.getSession({
+      headers: new Headers(headerStore),
+    });
+
+    if (!session?.user || !isDashboardRole(session.user.role)) {
+      return apiError("Unauthorized", 401);
+    }
+
     const body = await request.json();
     const validated = createGallerySchema.parse(body);
+    const authorId =
+      typeof body.authorId === "string" && body.authorId.trim()
+        ? body.authorId
+        : session.user.id;
 
     const gallery = await prisma.gallery.create({
       data: {
-        ...validated,
-        authorId: body.authorId,
+        title: validated.title,
+        description: validated.description,
+        authorId,
+        images: {
+          create: validated.images.map((image, index) => ({
+            url: image.url,
+            caption: image.caption?.trim() || null,
+            order: index,
+          })),
+        },
+      },
+      include: {
+        images: {
+          orderBy: { order: "asc" },
+        },
+        author: {
+          select: { id: true, name: true },
+        },
+        _count: {
+          select: { images: true },
+        },
       },
     });
 

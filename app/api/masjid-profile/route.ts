@@ -38,27 +38,25 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const validated = updateMasjidProfileSchema.parse(body);
-
-    // Upsert: create if not exists, update if exists
     const existing = await prisma.masjidProfile.findFirst();
-    const baseProfile = existing
-      ? normalizeMasjidProfile(existing)
-      : DEFAULT_MASJID_PROFILE;
-    const normalized = normalizeMasjidProfile({
-      ...baseProfile,
+    const editablePayload = {
       ...validated,
-    });
+    };
 
     let profile;
     if (existing) {
       profile = await prisma.masjidProfile.update({
         where: { id: existing.id },
-        data: normalized,
+        data: editablePayload,
       });
     } else {
       profile = await prisma.masjidProfile.create({
         data: {
-          ...normalized,
+          name: DEFAULT_MASJID_PROFILE.name,
+          address: DEFAULT_MASJID_PROFILE.address,
+          city: DEFAULT_MASJID_PROFILE.city,
+          province: DEFAULT_MASJID_PROFILE.province,
+          ...editablePayload,
         },
       });
     }

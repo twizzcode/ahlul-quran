@@ -4,6 +4,7 @@ export const ADMIN_ROUTE_PATHS = {
   artikelCreate: "/artikel/tulis",
   donasi: "/donasi",
   kampanye: "/kampanye",
+  kampanyeCreate: "/kampanye/tulis",
   galeri: "/galeri",
   profile: "/profile",
   pengguna: "/pengguna",
@@ -30,6 +31,7 @@ const INTERNAL_TO_ALIAS: Record<string, string> = {
   "/dashboard/artikel/tulis": ADMIN_ROUTE_PATHS.artikelCreate,
   "/dashboard/donasi": ADMIN_ROUTE_PATHS.donasi,
   "/dashboard/kampanye": ADMIN_ROUTE_PATHS.kampanye,
+  "/dashboard/kampanye/tulis": ADMIN_ROUTE_PATHS.kampanyeCreate,
   "/dashboard/galeri": ADMIN_ROUTE_PATHS.galeri,
   "/dashboard/profil-masjid": ADMIN_ROUTE_PATHS.profile,
   "/dashboard/pengguna": ADMIN_ROUTE_PATHS.pengguna,
@@ -42,6 +44,7 @@ const ALIAS_TO_INTERNAL: Record<string, string> = {
   [ADMIN_ROUTE_PATHS.artikelCreate]: "/dashboard/artikel/tulis",
   [ADMIN_ROUTE_PATHS.donasi]: "/dashboard/donasi",
   [ADMIN_ROUTE_PATHS.kampanye]: "/dashboard/kampanye",
+  [ADMIN_ROUTE_PATHS.kampanyeCreate]: "/dashboard/kampanye/tulis",
   [ADMIN_ROUTE_PATHS.galeri]: "/dashboard/galeri",
   [ADMIN_ROUTE_PATHS.profile]: "/dashboard/profil-masjid",
   "/profil-masjid": "/dashboard/profil-masjid",
@@ -53,6 +56,7 @@ const PAGE_TITLES: Record<string, string> = {
   [ADMIN_ROUTE_PATHS.artikel]: "Artikel",
   [ADMIN_ROUTE_PATHS.donasi]: "Donasi",
   [ADMIN_ROUTE_PATHS.kampanye]: "Kampanye",
+  [ADMIN_ROUTE_PATHS.kampanyeCreate]: "Buat Kampanye",
   [ADMIN_ROUTE_PATHS.galeri]: "Galeri",
   [ADMIN_ROUTE_PATHS.profile]: "Profile",
   "/profil-masjid": "Profile",
@@ -93,6 +97,10 @@ export function getAdminPageTitle(pathname: string) {
   }
 
   if (pathname.startsWith(`${ADMIN_ROUTE_PATHS.kampanye}/`)) {
+    if (pathname === ADMIN_ROUTE_PATHS.kampanyeCreate) {
+      return "Buat Kampanye";
+    }
+
     return "Detail Kampanye";
   }
 

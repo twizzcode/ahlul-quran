@@ -1,13 +1,11 @@
 import prisma from "@/lib/prisma";
 import {
   DashboardDonationManagement,
-  type DashboardCampaignArticleOption,
   type DashboardCampaignItem,
   type DashboardCampaignLinkedArticle,
   type DashboardDonationItem,
 } from "@/components/dashboard-donation-management";
 import { isDonationCampaignUpdateSchemaMismatchError } from "@/lib/donation-campaign-updates";
-import { getPublicArticleType } from "@/lib/public-articles";
 
 export const dynamic = "force-dynamic";
 
@@ -32,34 +30,13 @@ export default async function DashboardKampanyePage() {
     }>;
   }> = [];
 
-  const [donationsRaw, articleOptionsRaw] = await Promise.all([
-    prisma.donation.findMany({
-      include: {
-        campaign: { select: { id: true, title: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 200,
-    }),
-    prisma.article.findMany({
-      where: { status: "PUBLISHED" },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        publishedAt: true,
-        createdAt: true,
-        tags: true,
-        category: {
-          select: {
-            name: true,
-            slug: true,
-          },
-        },
-      },
-      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-      take: 100,
-    }),
-  ]);
+  const donationsRaw = await prisma.donation.findMany({
+    include: {
+      campaign: { select: { id: true, title: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
 
   try {
     campaignsRaw = await prisma.donationCampaign.findMany({
@@ -128,21 +105,10 @@ export default async function DashboardKampanyePage() {
     };
   });
 
-  const articleOptions: DashboardCampaignArticleOption[] = articleOptionsRaw
-    .filter((article) => getPublicArticleType(article) === "berita")
-    .map((article) => ({
-      id: article.id,
-      title: article.title,
-      slug: article.slug,
-      publishedAt: (article.publishedAt ?? article.createdAt).toISOString(),
-      categoryName: article.category?.name ?? null,
-    }));
-
   const donations: DashboardDonationItem[] = donationsRaw.map((donation) => ({
     id: donation.id,
     orderId: donation.orderId,
     donorName: donation.isAnonymous ? "Hamba Allah" : donation.donorName,
-    type: donation.type,
     amount: donation.amount,
     paymentType: donation.paymentType,
     status: donation.status,
@@ -154,7 +120,6 @@ export default async function DashboardKampanyePage() {
   return (
     <DashboardDonationManagement
       mode="campaigns"
-      initialArticleOptions={articleOptions}
       initialCampaigns={campaigns}
       initialDonations={donations}
     />

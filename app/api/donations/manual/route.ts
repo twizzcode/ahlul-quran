@@ -21,15 +21,17 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validated = createManualDonationSchema.parse(body);
     const orderId = generateOrderId("ADM");
+    const donorName = validated.isAnonymous
+      ? "Hamba Allah"
+      : validated.donorName?.trim() || "Hamba Allah";
 
     const donation = await prisma.donation.create({
       data: {
         orderId,
-        donorName: validated.donorName,
+        donorName,
         donorEmail: validated.donorEmail,
         donorPhone: validated.donorPhone,
         amount: validated.amount,
-        type: validated.type,
         message: validated.message,
         isAnonymous: validated.isAnonymous,
         status: "SUCCESS",

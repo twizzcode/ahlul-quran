@@ -41,7 +41,6 @@ export type DonationItemView = {
   id: string;
   donorName: string;
   amount: number;
-  type: string;
   createdAt: string;
   campaignTitle: string | null;
 };
@@ -51,16 +50,6 @@ type DonationPageClientProps = {
   recentDonations: DonationItemView[];
   donorHighlights: DonorHighlightItem[];
 };
-
-const donationTypes = [
-  { value: "INFAQ", label: "Infaq" },
-  { value: "SEDEKAH", label: "Sedekah" },
-  { value: "ZAKAT", label: "Zakat" },
-  { value: "WAKAF", label: "Wakaf" },
-  { value: "PEMBANGUNAN", label: "Pembangunan" },
-  { value: "OPERASIONAL", label: "Operasional" },
-  { value: "OTHER", label: "Lainnya" },
-] as const;
 
 function getInitials(name: string) {
   return (
@@ -261,9 +250,6 @@ export function DonationPageClient({
                   <div>
                     <p className="text-sm font-medium">{donation.donorName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {donationTypes.find((type) => type.value === donation.type)?.label ||
-                        donation.type}
-                      {" • "}
                       {formatDateTime(donation.createdAt)}
                       {donation.campaignTitle ? ` • ${donation.campaignTitle}` : ""}
                     </p>

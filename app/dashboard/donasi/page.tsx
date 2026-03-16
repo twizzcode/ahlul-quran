@@ -55,7 +55,6 @@ export default async function DashboardDonasiPage() {
     id: donation.id,
     orderId: donation.orderId,
     donorName: donation.isAnonymous ? "Hamba Allah" : donation.donorName,
-    type: donation.type,
     amount: donation.amount,
     paymentType: donation.paymentType,
     status: donation.status,
@@ -67,7 +66,6 @@ export default async function DashboardDonasiPage() {
   return (
     <DashboardDonationManagement
       mode="donations"
-      initialArticleOptions={[]}
       initialCampaigns={campaigns}
       initialDonations={donations}
     />

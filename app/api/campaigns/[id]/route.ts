@@ -139,6 +139,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
+    const hasLinkedArticleIds = Object.prototype.hasOwnProperty.call(body, "linkedArticleIds");
 
     const normalizedBody = {
       ...body,
@@ -150,8 +151,25 @@ export async function PATCH(
         endDate: updateCampaignSchema.shape.endDate.nullable().optional(),
       })
       .parse(normalizedBody);
-    const linkedArticleIds = Array.from(new Set(validated.linkedArticleIds ?? []));
-    const linkedArticles = await getLinkedArticles(linkedArticleIds);
+    const linkedArticleIds = hasLinkedArticleIds
+      ? Array.from(new Set(validated.linkedArticleIds ?? []))
+      : null;
+    const linkedArticles = linkedArticleIds
+      ? await getLinkedArticles(linkedArticleIds)
+      : await prisma.article.findMany({
+          where: {
+            donationCampaignId: id,
+            status: "PUBLISHED",
+          },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            publishedAt: true,
+            createdAt: true,
+          },
+          orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+        });
 
     const campaign = await prisma.$transaction(async (tx) => {
       const updatedCampaign = await tx.donationCampaign.update({
@@ -172,16 +190,18 @@ export async function PATCH(
         },
       });
 
-      await tx.article.updateMany({
-        where: { donationCampaignId: id },
-        data: { donationCampaignId: null },
-      });
-
-      if (linkedArticleIds.length > 0) {
+      if (linkedArticleIds) {
         await tx.article.updateMany({
-          where: { id: { in: linkedArticleIds } },
-          data: { donationCampaignId: id },
+          where: { donationCampaignId: id },
+          data: { donationCampaignId: null },
         });
+
+        if (linkedArticleIds.length > 0) {
+          await tx.article.updateMany({
+            where: { id: { in: linkedArticleIds } },
+            data: { donationCampaignId: id },
+          });
+        }
       }
 
       return updatedCampaign;

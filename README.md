@@ -217,8 +217,7 @@ Buka [http://admin.localhost:3000](http://admin.localhost:3000) untuk panel admi
 | `UserRole` | SUPER_ADMIN, ADMIN, TAKMIR, JAMAAH |
 | `ArticleStatus` | DRAFT, PUBLISHED, ARCHIVED |
 | `EventStatus` | UPCOMING, ONGOING, COMPLETED, CANCELLED |
-| `DonationStatus` | PENDING, SUCCESS, FAILED, EXPIRED, REFUND |
-| `DonationType` | INFAQ, ZAKAT, SEDEKAH, WAKAF, FIDYAH, QURBAN, OTHER |
+| `DonationStatus` | PENDING, SUCCESS, FAILED, EXPIRED, CHALLENGE, CANCELED |
 | `AnnouncementPriority` | LOW, NORMAL, HIGH, URGENT |
 
 ---

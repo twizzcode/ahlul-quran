@@ -1,29 +1,42 @@
-import { Button } from "@/components/ui/button";
+import prisma from "@/lib/prisma";
+import {
+  DashboardGalleryManagement,
+  type DashboardGalleryItem,
+} from "@/components/dashboard-gallery-management";
 
-// ============================================================
-// Dashboard: Galeri Management
-// ============================================================
+export const dynamic = "force-dynamic";
 
-export default function DashboardGaleriPage() {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Galeri Foto</h1>
-          <p className="text-sm text-muted-foreground">
-            Kelola album dan foto kegiatan masjid
-          </p>
-        </div>
-        <Button>+ Buat Album</Button>
-      </div>
+export default async function DashboardGaleriPage() {
+  const galleriesRaw = await prisma.gallery.findMany({
+    include: {
+      images: {
+        orderBy: { order: "asc" },
+      },
+      author: {
+        select: { name: true },
+      },
+      _count: {
+        select: { images: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
-      {/* Gallery Grid */}
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="col-span-3 rounded-xl border p-8 text-center text-muted-foreground">
-          Belum ada album foto. Klik &quot;Buat Album&quot; untuk membuat album baru. 
-          File gambar akan disimpan di Cloudflare R2.
-        </div>
-      </div>
-    </div>
-  );
+  const galleries: DashboardGalleryItem[] = galleriesRaw.map((gallery) => ({
+    id: gallery.id,
+    title: gallery.title,
+    description: gallery.description,
+    createdAt: gallery.createdAt.toISOString(),
+    updatedAt: gallery.updatedAt.toISOString(),
+    authorName: gallery.author.name,
+    imageCount: gallery._count.images,
+    images: gallery.images.map((image) => ({
+      id: image.id,
+      url: image.url,
+      caption: image.caption,
+      order: image.order,
+    })),
+  }));
+
+  return <DashboardGalleryManagement initialGalleries={galleries} />;
 }

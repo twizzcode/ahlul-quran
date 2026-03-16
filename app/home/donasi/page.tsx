@@ -5,7 +5,7 @@ import type { DonorHighlightItem } from "@/components/animated-tooltip-demo";
 
 export const metadata: Metadata = {
   title: "Donasi",
-  description: "Berdonasi untuk kemajuan masjid - Infaq, Sedekah, Zakat, Wakaf",
+  description: "Berdonasi untuk kemajuan masjid dan program-program kebaikan.",
 };
 
 export const dynamic = "force-dynamic";
@@ -86,7 +86,6 @@ export default async function DonasiPage() {
     id: donation.id,
     donorName: donation.isAnonymous ? "Hamba Allah" : donation.donorName,
     amount: donation.amount,
-    type: donation.type,
     createdAt: donation.createdAt.toISOString(),
     campaignTitle: donation.campaign?.title ?? null,
   }));

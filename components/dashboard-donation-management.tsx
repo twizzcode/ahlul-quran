@@ -2,10 +2,18 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { R2ImageUploadField } from "@/components/r2-image-upload-field";
-import { DatePickerField } from "@/components/ui/date-picker-field";
+import { DashboardCampaignCreateForm } from "@/components/dashboard-campaign-create-form";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -13,7 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { type PendingUploadImage, uploadFileToR2 } from "@/lib/upload-client";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 
 export type DashboardCampaignLinkedArticle = {
@@ -21,14 +28,6 @@ export type DashboardCampaignLinkedArticle = {
   title: string;
   slug: string;
   publishedAt: string;
-};
-
-export type DashboardCampaignArticleOption = {
-  id: string;
-  title: string;
-  slug: string;
-  publishedAt: string;
-  categoryName: string | null;
 };
 
 export type DashboardCampaignItem = {
@@ -51,7 +50,6 @@ export type DashboardDonationItem = {
   id: string;
   orderId: string;
   donorName: string;
-  type: string;
   amount: number;
   paymentType: string | null;
   status: "PENDING" | "SUCCESS" | "FAILED" | "EXPIRED" | "CHALLENGE" | "CANCELED";
@@ -62,19 +60,8 @@ export type DashboardDonationItem = {
 
 type DashboardDonationManagementProps = {
   mode: "donations" | "campaigns";
-  initialArticleOptions: DashboardCampaignArticleOption[];
   initialCampaigns: DashboardCampaignItem[];
   initialDonations: DashboardDonationItem[];
-};
-
-const donationTypeLabel: Record<string, string> = {
-  INFAQ: "Infaq",
-  SEDEKAH: "Sedekah",
-  ZAKAT: "Zakat",
-  WAKAF: "Wakaf",
-  PEMBANGUNAN: "Pembangunan",
-  OPERASIONAL: "Operasional",
-  OTHER: "Lainnya",
 };
 
 const statusLabel: Record<string, string> = {
@@ -115,60 +102,27 @@ function calculateProgress(collectedAmount: number, targetAmount: number) {
 
 export function DashboardDonationManagement({
   mode,
-  initialArticleOptions,
   initialCampaigns,
   initialDonations,
 }: DashboardDonationManagementProps) {
-  const [articleOptions] = useState(initialArticleOptions);
   const [campaigns, setCampaigns] = useState(initialCampaigns);
   const [donations, setDonations] = useState(initialDonations);
-  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isManualFormOpen, setIsManualFormOpen] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
   const [isCreatingManualDonation, setIsCreatingManualDonation] = useState(false);
   const [approvingDonationId, setApprovingDonationId] = useState<string | null>(null);
   const [cancelingDonationId, setCancelingDonationId] = useState<string | null>(null);
-  const [createCoverImage, setCreateCoverImage] = useState("");
-  const [pendingCreateCoverImage, setPendingCreateCoverImage] =
-    useState<PendingUploadImage | null>(null);
-  const [createEndDate, setCreateEndDate] = useState("");
-  const [createStatusValue, setCreateStatusValue] = useState("true");
   const [actionError, setActionError] = useState("");
-  const [actionSuccess, setActionSuccess] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("__all__");
+  const [manualCampaignId, setManualCampaignId] = useState("__general__");
+  const [isManualAnonymous, setIsManualAnonymous] = useState(false);
   const [search, setSearch] = useState("");
-  const pendingCreateCoverImageRef = useRef<PendingUploadImage | null>(null);
   const isDonationMode = mode === "donations";
   const isCampaignMode = mode === "campaigns";
 
-  useEffect(() => {
-    pendingCreateCoverImageRef.current = pendingCreateCoverImage;
-  }, [pendingCreateCoverImage]);
-
-  useEffect(() => {
-    return () => {
-      if (pendingCreateCoverImageRef.current?.previewUrl) {
-        URL.revokeObjectURL(pendingCreateCoverImageRef.current.previewUrl);
-      }
-    };
-  }, []);
-
-  function handleCreateCoverImageChange(value: string) {
-    if (!value && pendingCreateCoverImageRef.current?.previewUrl) {
-      URL.revokeObjectURL(pendingCreateCoverImageRef.current.previewUrl);
-      setPendingCreateCoverImage(null);
-    }
-
-    setCreateCoverImage(value);
-  }
-
-  function handlePendingCreateCoverImageChange(file: File | null, previewUrl: string) {
-    if (pendingCreateCoverImageRef.current?.previewUrl) {
-      URL.revokeObjectURL(pendingCreateCoverImageRef.current.previewUrl);
-    }
-
-    setPendingCreateCoverImage(file ? { file, previewUrl } : null);
+  function handleCampaignCreated(campaign: DashboardCampaignItem) {
+    setCampaigns((prev) => [campaign, ...prev]);
+    setIsCreateDialogOpen(false);
   }
 
   const donationStats = useMemo(() => {
@@ -197,11 +151,7 @@ export function DashboardDonationManagement({
     const query = search.trim().toLowerCase();
 
     return donations.filter((donation) => {
-      if (statusFilter && donation.status !== statusFilter) {
-        return false;
-      }
-
-      if (typeFilter && donation.type !== typeFilter) {
+      if (statusFilter !== "__all__" && donation.status !== statusFilter) {
         return false;
       }
 
@@ -215,130 +165,7 @@ export function DashboardDonationManagement({
         (donation.campaignTitle || "").toLowerCase().includes(query)
       );
     });
-  }, [donations, statusFilter, typeFilter, search]);
-
-  async function handleCreateCampaign(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    setActionError("");
-    setActionSuccess("");
-    setIsCreating(true);
-
-    const formData = new FormData(form);
-    const title = String(formData.get("title") || "").trim();
-    const description = String(formData.get("description") || "").trim();
-    const targetAmount = Number(formData.get("targetAmount"));
-    const linkedArticleIds = formData
-      .getAll("linkedArticleIds")
-      .map((value) => String(value))
-      .filter(Boolean);
-
-    if (title.length < 3) {
-      setActionError("Judul minimal 3 karakter.");
-      setIsCreating(false);
-      return;
-    }
-
-    if (description.length < 10) {
-      setActionError("Deskripsi minimal 10 karakter.");
-      setIsCreating(false);
-      return;
-    }
-
-    if (!Number.isFinite(targetAmount) || targetAmount < 100000) {
-      setActionError("Target minimal Rp 100.000.");
-      setIsCreating(false);
-      return;
-    }
-
-    try {
-      const payload: {
-        title: string;
-        description: string;
-        coverImage?: string;
-        targetAmount: number;
-        isActive: boolean;
-        endDate?: string;
-        linkedArticleIds: string[];
-      } = {
-        title,
-        description,
-        targetAmount,
-        isActive: createStatusValue === "true",
-        linkedArticleIds,
-      };
-
-      const resolvedCoverImage = pendingCreateCoverImage
-        ? await uploadFileToR2(pendingCreateCoverImage.file, "campaigns/covers")
-        : createCoverImage.trim() || undefined;
-
-      if (resolvedCoverImage) {
-        payload.coverImage = resolvedCoverImage;
-      }
-
-      if (createEndDate) {
-        payload.endDate = new Date(`${createEndDate}T23:59:59`).toISOString();
-      }
-
-      const response = await fetch("/api/campaigns", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const result = await response.json();
-
-      if (!response.ok || !result?.success) {
-        throw new Error(result?.message || "Gagal membuat kampanye.");
-      }
-
-      const created = result.data as {
-        id: string;
-        title: string;
-        slug: string;
-        description: string;
-        coverImage: string | null;
-        targetAmount: number;
-        isActive: boolean;
-        endDate: string | null;
-        createdAt: string;
-        linkedArticles: DashboardCampaignLinkedArticle[];
-      };
-
-      setCampaigns((prev) => [
-        {
-          id: created.id,
-          title: created.title,
-          slug: created.slug,
-          description: created.description,
-          coverImage: created.coverImage ?? null,
-          targetAmount: created.targetAmount,
-          collectedAmount: 0,
-          progress: 0,
-          donationCount: 0,
-          isActive: created.isActive,
-          endDate: created.endDate,
-          createdAt: created.createdAt,
-          linkedArticles: created.linkedArticles,
-        },
-        ...prev,
-      ]);
-
-      form.reset();
-      if (pendingCreateCoverImageRef.current?.previewUrl) {
-        URL.revokeObjectURL(pendingCreateCoverImageRef.current.previewUrl);
-      }
-      setPendingCreateCoverImage(null);
-      setCreateCoverImage("");
-      setCreateEndDate("");
-      setCreateStatusValue("true");
-      setActionSuccess("Kampanye berhasil dibuat.");
-      setIsCreateFormOpen(false);
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Gagal membuat kampanye.");
-    } finally {
-      setIsCreating(false);
-    }
-  }
+  }, [donations, statusFilter, search]);
 
   async function handleApproveDonation(donation: DashboardDonationItem) {
     const confirmed = window.confirm(
@@ -350,7 +177,6 @@ export function DashboardDonationManagement({
     }
 
     setActionError("");
-    setActionSuccess("");
     setApprovingDonationId(donation.id);
 
     try {
@@ -392,7 +218,7 @@ export function DashboardDonationManagement({
         );
       }
 
-      setActionSuccess("Donasi transfer BSI berhasil di-approve.");
+      toast.success("Donasi transfer BSI berhasil di-approve.");
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Gagal meng-approve donasi.");
     } finally {
@@ -408,7 +234,6 @@ export function DashboardDonationManagement({
     }
 
     setActionError("");
-    setActionSuccess("");
     setCancelingDonationId(donation.id);
 
     try {
@@ -432,7 +257,7 @@ export function DashboardDonationManagement({
         )
       );
 
-      setActionSuccess("Donasi berhasil dibatalkan.");
+      toast.success("Donasi berhasil dibatalkan.");
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Gagal membatalkan donasi.");
     } finally {
@@ -444,7 +269,6 @@ export function DashboardDonationManagement({
     event.preventDefault();
     const form = event.currentTarget;
     setActionError("");
-    setActionSuccess("");
     setIsCreatingManualDonation(true);
 
     const formData = new FormData(form);
@@ -452,12 +276,11 @@ export function DashboardDonationManagement({
     const donorEmail = String(formData.get("donorEmail") || "").trim();
     const donorPhone = String(formData.get("donorPhone") || "").trim();
     const amount = Number(formData.get("amount"));
-    const type = String(formData.get("type") || "PEMBANGUNAN");
-    const campaignId = String(formData.get("campaignId") || "").trim();
+    const campaignId = manualCampaignId === "__general__" ? "" : manualCampaignId;
     const message = String(formData.get("message") || "").trim();
     const isAnonymous = formData.get("isAnonymous") === "on";
 
-    if (donorName.length < 2) {
+    if (!isAnonymous && donorName.length < 2) {
       setActionError("Nama donatur minimal 2 karakter.");
       setIsCreatingManualDonation(false);
       return;
@@ -474,11 +297,10 @@ export function DashboardDonationManagement({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          donorName,
+          donorName: isAnonymous ? undefined : donorName,
           donorEmail: donorEmail || undefined,
           donorPhone: donorPhone || undefined,
           amount,
-          type,
           campaignId: campaignId || undefined,
           message: message || undefined,
           isAnonymous,
@@ -494,7 +316,6 @@ export function DashboardDonationManagement({
         id: string;
         orderId: string;
         donorName: string;
-        type: string;
         amount: number;
         paymentType: string | null;
         status: DashboardDonationItem["status"];
@@ -507,7 +328,6 @@ export function DashboardDonationManagement({
           id: created.id,
           orderId: created.orderId,
           donorName: isAnonymous ? "Hamba Allah" : created.donorName,
-          type: created.type,
           amount: created.amount,
           paymentType: created.paymentType,
           status: created.status,
@@ -534,60 +354,15 @@ export function DashboardDonationManagement({
       }
 
       form.reset();
-      setActionSuccess("Donasi manual berhasil ditambahkan.");
+      setManualCampaignId("__general__");
+      setIsManualAnonymous(false);
+      toast.success("Donasi manual berhasil ditambahkan.");
       setIsManualFormOpen(false);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Gagal menambahkan donasi manual.");
     } finally {
       setIsCreatingManualDonation(false);
     }
-  }
-
-  function renderLinkedArticleField(selectedIds: string[]) {
-    return (
-      <div className="md:col-span-2">
-        <label className="mb-2 block text-sm font-medium">Update Berita Tertaut</label>
-        {articleOptions.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-            Belum ada berita terbit yang bisa ditautkan ke timeline kampanye.
-          </div>
-        ) : (
-          <div className="max-h-72 space-y-2 overflow-y-auto rounded-lg border p-3">
-            {articleOptions.map((article) => {
-              const isChecked = selectedIds.includes(article.id);
-
-              return (
-                <label
-                  key={article.id}
-                  className={`flex cursor-pointer gap-3 rounded-lg px-3 py-2 transition-colors ${
-                    isChecked ? "bg-emerald-50" : "hover:bg-muted/50"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    name="linkedArticleIds"
-                    value={article.id}
-                    defaultChecked={isChecked}
-                    className="mt-1 h-4 w-4 rounded border-input text-primary"
-                  />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium leading-6">{article.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDateTime(article.publishedAt)}
-                      {article.categoryName ? ` • ${article.categoryName}` : ""}
-                    </p>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-        )}
-        <p className="mt-2 text-xs text-muted-foreground">
-          Berita yang dipilih akan tampil sebagai timeline update pada halaman detail
-          donasi.
-        </p>
-      </div>
-    );
   }
 
   return (
@@ -605,14 +380,135 @@ export function DashboardDonationManagement({
         </div>
         <div className="flex flex-wrap gap-2">
           {isDonationMode ? (
-            <Button variant="outline" onClick={() => setIsManualFormOpen((value) => !value)}>
-              {isManualFormOpen ? "Tutup Donasi Manual" : "+ Donasi Manual"}
-            </Button>
+            <Dialog
+              open={isManualFormOpen}
+              onOpenChange={(open) => {
+                setIsManualFormOpen(open);
+                if (!open) {
+                  setManualCampaignId("__general__");
+                  setIsManualAnonymous(false);
+                }
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button variant="outline">+ Donasi Manual</Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle>Tambah Donasi Manual</DialogTitle>
+                  <DialogDescription>
+                    Input donasi yang masuk di luar web dan hubungkan ke kampanye yang sesuai.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <form className="grid gap-4 md:grid-cols-2" onSubmit={handleCreateManualDonation}>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium">Nama Donatur</label>
+                    <input
+                      name="donorName"
+                      required={!isManualAnonymous}
+                      minLength={isManualAnonymous ? undefined : 2}
+                      disabled={isManualAnonymous}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      placeholder={isManualAnonymous ? "Akan disimpan sebagai Hamba Allah" : "Nama donatur"}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium">Nominal</label>
+                    <input
+                      type="number"
+                      name="amount"
+                      required
+                      min={10000}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      placeholder="100000"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium">Email</label>
+                    <input
+                      type="email"
+                      name="donorEmail"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      placeholder="opsional"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium">Nomor HP</label>
+                    <input
+                      name="donorPhone"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      placeholder="opsional"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium">Kampanye</label>
+                    <Select value={manualCampaignId} onValueChange={setManualCampaignId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih kampanye" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__general__">Donasi Umum</SelectItem>
+                        {campaigns.map((campaign) => (
+                          <SelectItem key={campaign.id} value={campaign.id}>
+                            {campaign.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-medium">Catatan</label>
+                    <textarea
+                      name="message"
+                      rows={3}
+                      className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      placeholder="Catatan transfer manual, sumber donasi, dll"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm md:col-span-2">
+                    <input
+                      type="checkbox"
+                      name="isAnonymous"
+                      checked={isManualAnonymous}
+                      onChange={(event) => setIsManualAnonymous(event.target.checked)}
+                      className="rounded border-input"
+                    />
+                    <span>Tampilkan sebagai Hamba Allah</span>
+                  </label>
+                  <div className="flex justify-end gap-3 md:col-span-2">
+                    <Button type="button" variant="outline" onClick={() => setIsManualFormOpen(false)}>
+                      Batal
+                    </Button>
+                    <Button type="submit" disabled={isCreatingManualDonation}>
+                      {isCreatingManualDonation ? "Menyimpan..." : "Simpan Donasi Manual"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           ) : null}
           {isCampaignMode ? (
-            <Button onClick={() => setIsCreateFormOpen((value) => !value)}>
-              {isCreateFormOpen ? "Tutup Form" : "+ Buat Kampanye"}
-            </Button>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>+ Buat Kampanye</Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-6xl" showCloseButton>
+                <DialogHeader className="border-b px-6 py-5">
+                  <DialogTitle>Buat Kampanye</DialogTitle>
+                  <DialogDescription>
+                    Susun kampanye baru dengan cover, judul, deskripsi, dan pengaturan donasi.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="px-6 py-6">
+                  <DashboardCampaignCreateForm
+                    variant="dialog"
+                    onCreated={handleCampaignCreated}
+                    onCancel={() => setIsCreateDialogOpen(false)}
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
           ) : null}
         </div>
       </div>
@@ -621,221 +517,6 @@ export function DashboardDonationManagement({
         <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {actionError}
         </div>
-      ) : null}
-      {actionSuccess ? (
-        <div className="mb-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
-          {actionSuccess}
-        </div>
-      ) : null}
-
-      {isCampaignMode && isCreateFormOpen ? (
-        <section className="mb-8 rounded-[24px] border bg-card p-6 shadow-sm">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold">Tambah Kampanye Donasi</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Susun kampanye baru dengan cover, target, dan berita update yang relevan.
-            </p>
-          </div>
-
-          <form className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_380px]" onSubmit={handleCreateCampaign}>
-            <div className="space-y-6">
-              <section className="rounded-2xl border bg-background p-5">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Visual
-                </h3>
-                <div className="mt-4">
-                  <R2ImageUploadField
-                    label="Cover Image"
-                    value={createCoverImage}
-                    folder="campaigns/covers"
-                    deferUpload
-                    onChange={handleCreateCoverImageChange}
-                    onPendingFileChange={handlePendingCreateCoverImageChange}
-                    description="Upload cover kampanye dengan drag & drop atau pilih file."
-                    onError={setActionError}
-                  />
-                </div>
-              </section>
-
-              <section className="rounded-2xl border bg-background p-5">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Informasi Utama
-                </h3>
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium">Judul</label>
-                    <input
-                      name="title"
-                      required
-                      minLength={3}
-                      className="flex h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                      placeholder="Contoh: Renovasi Tempat Wudhu"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-medium">Deskripsi</label>
-                    <textarea
-                      name="description"
-                      required
-                      minLength={10}
-                      rows={5}
-                      className="flex w-full rounded-xl border border-input bg-background px-3 py-3 text-sm"
-                      placeholder="Jelaskan tujuan kampanye, urgensi, dan manfaatnya..."
-                    />
-                  </div>
-                </div>
-              </section>
-            </div>
-
-            <div className="space-y-6">
-              <section className="rounded-2xl border bg-background p-5">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Pengaturan
-                </h3>
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium">Target Donasi</label>
-                    <input
-                      type="number"
-                      name="targetAmount"
-                      required
-                      min={100000}
-                      className="flex h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                      placeholder="10000000"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-medium">
-                      Tanggal Berakhir (opsional)
-                    </label>
-                    <DatePickerField value={createEndDate} onChange={setCreateEndDate} />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-medium">Status</label>
-                    <Select value={createStatusValue} onValueChange={setCreateStatusValue}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="true">Aktif</SelectItem>
-                        <SelectItem value="false">Nonaktif</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </section>
-
-              <section className="rounded-2xl border bg-background p-5">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Update Berita
-                </h3>
-                <div className="mt-4">{renderLinkedArticleField([])}</div>
-              </section>
-
-              <div className="flex justify-end">
-                <Button type="submit" disabled={isCreating} className="min-w-48">
-                  {isCreating ? "Menyimpan..." : "Simpan Kampanye"}
-                </Button>
-              </div>
-            </div>
-          </form>
-        </section>
-      ) : null}
-
-      {isDonationMode && isManualFormOpen ? (
-        <section className="mb-8 rounded-xl border bg-card p-5">
-          <h2 className="mb-4 text-lg font-semibold">Tambah Donasi Manual</h2>
-          <form className="grid gap-4 md:grid-cols-2" onSubmit={handleCreateManualDonation}>
-            <div>
-              <label className="mb-2 block text-sm font-medium">Nama Donatur</label>
-              <input
-                name="donorName"
-                required
-                minLength={2}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                placeholder="Nama donatur"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium">Nominal</label>
-              <input
-                type="number"
-                name="amount"
-                required
-                min={10000}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                placeholder="100000"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium">Email</label>
-              <input
-                type="email"
-                name="donorEmail"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                placeholder="opsional"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium">Nomor HP</label>
-              <input
-                name="donorPhone"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                placeholder="opsional"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium">Jenis Donasi</label>
-              <select
-                name="type"
-                defaultValue="PEMBANGUNAN"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                {Object.entries(donationTypeLabel).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium">Kampanye</label>
-              <select
-                name="campaignId"
-                defaultValue=""
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="">Donasi Umum</option>
-                {campaigns.map((campaign) => (
-                  <option key={campaign.id} value={campaign.id}>
-                    {campaign.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium">Catatan</label>
-              <textarea
-                name="message"
-                rows={3}
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                placeholder="Catatan transfer manual, sumber donasi, dll"
-              />
-            </div>
-            <label className="flex items-center gap-2 text-sm md:col-span-2">
-              <input type="checkbox" name="isAnonymous" className="rounded border-input" />
-              <span>Tampilkan sebagai Hamba Allah</span>
-            </label>
-            <div className="flex items-end md:col-span-2">
-              <Button type="submit" disabled={isCreatingManualDonation} className="w-full md:w-auto">
-                {isCreatingManualDonation ? "Menyimpan..." : "Simpan Donasi Manual"}
-              </Button>
-            </div>
-          </form>
-        </section>
       ) : null}
 
       {isDonationMode ? (
@@ -867,7 +548,7 @@ export function DashboardDonationManagement({
         </section>
       ) : null}
 
-      {isCampaignMode && !isCreateFormOpen ? (
+      {isCampaignMode ? (
       <section className="mb-8">
         <h2 className="mb-4 text-lg font-semibold">Daftar Kampanye</h2>
         {campaigns.length === 0 ? (
@@ -957,34 +638,25 @@ export function DashboardDonationManagement({
       ) : null}
 
       {isDonationMode ? (
-      <section>
-        <h2 className="mb-4 text-lg font-semibold">Transaksi Donasi</h2>
+        <section>
+          <h2 className="mb-4 text-lg font-semibold">Transaksi Donasi</h2>
         <div className="mb-4 flex flex-wrap gap-3">
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-            className="flex h-9 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="">Semua Status</option>
-            <option value="SUCCESS">Berhasil</option>
-            <option value="PENDING">Menunggu</option>
-            <option value="FAILED">Gagal</option>
-            <option value="EXPIRED">Kadaluarsa</option>
-            <option value="CHALLENGE">Challenge</option>
-            <option value="CANCELED">Canceled</option>
-          </select>
-          <select
-            value={typeFilter}
-            onChange={(event) => setTypeFilter(event.target.value)}
-            className="flex h-9 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="">Semua Jenis</option>
-            {Object.entries(donationTypeLabel).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+          <div className="w-52">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-9 rounded-md px-3 text-sm">
+                <SelectValue placeholder="Semua Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Semua Status</SelectItem>
+                <SelectItem value="SUCCESS">Berhasil</SelectItem>
+                <SelectItem value="PENDING">Menunggu</SelectItem>
+                <SelectItem value="FAILED">Gagal</SelectItem>
+                <SelectItem value="EXPIRED">Kadaluarsa</SelectItem>
+                <SelectItem value="CHALLENGE">Challenge</SelectItem>
+                <SelectItem value="CANCELED">Canceled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <input
             type="text"
             placeholder="Cari order id / donatur / kampanye..."
@@ -1001,7 +673,6 @@ export function DashboardDonationManagement({
                 <th className="p-4 text-left font-medium">Order ID</th>
                 <th className="p-4 text-left font-medium">Donatur</th>
                 <th className="p-4 text-left font-medium">Kampanye</th>
-                <th className="p-4 text-left font-medium">Jenis</th>
                 <th className="p-4 text-right font-medium">Jumlah</th>
                 <th className="p-4 text-left font-medium">Metode</th>
                 <th className="p-4 text-left font-medium">Status</th>
@@ -1012,7 +683,7 @@ export function DashboardDonationManagement({
             <tbody>
               {filteredDonations.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
                     Tidak ada data donasi untuk filter ini.
                   </td>
                 </tr>
@@ -1022,7 +693,6 @@ export function DashboardDonationManagement({
                     <td className="p-4 font-mono text-xs">{donation.orderId}</td>
                     <td className="p-4">{donation.donorName}</td>
                     <td className="p-4">{donation.campaignTitle || "-"}</td>
-                    <td className="p-4">{donationTypeLabel[donation.type] || donation.type}</td>
                     <td className="p-4 text-right font-semibold">
                       {formatCurrency(donation.amount)}
                     </td>
