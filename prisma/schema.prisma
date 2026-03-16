@@ -1,0 +1,358 @@
+// ============================================================
+// Masjid Website - Prisma Schema
+// Database: PostgreSQL (Neon)
+// Auth: Better Auth
+// Storage: Cloudflare R2
+// Payment: Midtrans
+// ============================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// Better Auth - Required Tables
+// ============================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          UserRole  @default(JAMAAH)
+  phone         String?
+  address       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+
+  // Relations
+  articles    Article[]
+  events      Event[]
+  donations   Donation[]
+  galleries   Gallery[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+}
+
+// ============================================================
+// Enums
+// ============================================================
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  TAKMIR
+  JAMAAH
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum EventStatus {
+  UPCOMING
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum DonationStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXPIRED
+  CHALLENGE
+  CANCELED
+}
+
+enum DonationType {
+  INFAQ
+  SEDEKAH
+  ZAKAT
+  WAKAF
+  PEMBANGUNAN
+  OPERASIONAL
+  OTHER
+}
+
+// ============================================================
+// Masjid Profile
+// ============================================================
+
+model MasjidProfile {
+  id          String  @id @default(cuid())
+  name        String
+  description String? @db.Text
+  address     String
+  city        String
+  province    String
+  postalCode  String?
+  phone       String?
+  email       String?
+  website     String?
+  latitude    Float?
+  longitude   Float?
+  logoUrl     String?
+  bannerUrl   String?
+
+  // Social Media
+  facebook    String?
+  instagram   String?
+  youtube     String?
+  tiktok      String?
+
+  // Bank Account for donations
+  bankName    String?
+  bankAccount String?
+  bankHolder  String?
+
+  // Proposal / Company Profile Content
+  foundationName String?
+  movementName   String?
+  heroTitle      String?
+  heroSubtitle   String? @db.Text
+  backgroundText String? @db.Text
+  visionStatement String? @db.Text
+  visionItems    Json?
+  timelineItems  Json?
+  committeeItems Json?
+  fundingItems   Json?
+  roadmapItems   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("masjid_profile")
+}
+
+// ============================================================
+// Articles / Blog
+// ============================================================
+
+model Article {
+  id          String        @id @default(cuid())
+  title       String
+  slug        String        @unique
+  excerpt     String?       @db.Text
+  content     String        @db.Text
+  coverImage  String?
+  status      ArticleStatus @default(DRAFT)
+  publishedAt DateTime?
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id])
+  categoryId  String?
+  category    ArticleCategory? @relation(fields: [categoryId], references: [id])
+  donationCampaignId String?
+  donationCampaign   DonationCampaign? @relation("DonationCampaignUpdates", fields: [donationCampaignId], references: [id], onDelete: SetNull)
+  tags        String[]
+  viewCount   Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([slug])
+  @@index([status])
+  @@index([donationCampaignId])
+  @@map("article")
+}
+
+model ArticleCategory {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  slug     String    @unique
+  articles Article[]
+
+  @@map("article_category")
+}
+
+// ============================================================
+// Events / Kegiatan
+// ============================================================
+
+model Event {
+  id          String      @id @default(cuid())
+  title       String
+  slug        String      @unique
+  description String      @db.Text
+  coverImage  String?
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  status      EventStatus @default(UPCOMING)
+  isRecurring Boolean     @default(false)
+  authorId    String
+  author      User        @relation(fields: [authorId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([slug])
+  @@index([status])
+  @@map("event")
+}
+
+// ============================================================
+// Donations / Donasi (Midtrans Integration)
+// ============================================================
+
+model Donation {
+  id              String         @id @default(cuid())
+  orderId         String         @unique
+  donorName       String
+  donorEmail      String?
+  donorPhone      String?
+  amount          Float
+  type            DonationType
+  message         String?        @db.Text
+  isAnonymous     Boolean        @default(false)
+  status          DonationStatus @default(PENDING)
+
+  // Midtrans fields
+  midtransId      String?        @unique
+  paymentType     String?
+  snapToken       String?
+  snapRedirectUrl String?
+  paidAt          DateTime?
+
+  // Optional user link
+  userId          String?
+  user            User?          @relation(fields: [userId], references: [id])
+
+  // Campaign
+  campaignId      String?
+  campaign        DonationCampaign? @relation(fields: [campaignId], references: [id])
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@map("donation")
+}
+
+model DonationCampaign {
+  id           String     @id @default(cuid())
+  title        String
+  slug         String     @unique
+  description  String     @db.Text
+  coverImage   String?
+  targetAmount Float
+  isActive     Boolean    @default(true)
+  startDate    DateTime   @default(now())
+  endDate      DateTime?
+  donations    Donation[]
+  updates      Article[]  @relation("DonationCampaignUpdates")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([slug])
+  @@map("donation_campaign")
+}
+
+// ============================================================
+// Gallery
+// ============================================================
+
+model Gallery {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  images      GalleryImage[]
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("gallery")
+}
+
+model GalleryImage {
+  id        String   @id @default(cuid())
+  url       String
+  caption   String?
+  order     Int      @default(0)
+  galleryId String
+  gallery   Gallery  @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("gallery_image")
+}
+
+// ============================================================
+// Financial Records / Keuangan
+// ============================================================
+
+model FinancialRecord {
+  id          String   @id @default(cuid())
+  date        DateTime @db.Date
+  description String
+  amount      Float
+  type        FinancialType
+  category    String?
+  receiptUrl  String?
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+  @@index([type])
+  @@map("financial_record")
+}
+
+enum FinancialType {
+  INCOME
+  EXPENSE
+}
