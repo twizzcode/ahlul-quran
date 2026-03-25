@@ -2,6 +2,8 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError } from "@/lib/utils";
 import {
   DEFAULT_MASJID_PROFILE,
+  isDatabaseConnectivityError,
+  isMasjidProfileReadFallbackError,
   isMasjidProfileSchemaMismatchError,
   normalizeMasjidProfile,
 } from "@/lib/masjid-profile";
@@ -18,9 +20,12 @@ export async function GET() {
     const profile = await prisma.masjidProfile.findFirst();
     return apiSuccess(profile ? normalizeMasjidProfile(profile) : DEFAULT_MASJID_PROFILE);
   } catch (error) {
-    if (isMasjidProfileSchemaMismatchError(error)) {
+    if (isMasjidProfileReadFallbackError(error)) {
+      const reason = isDatabaseConnectivityError(error)
+        ? "Database masjid profile tidak dapat dijangkau. Mengembalikan profil default."
+        : "Masjid profile schema is ahead of the active database. Returning default profile payload.";
       console.warn(
-        "Masjid profile schema is ahead of the active database. Returning default profile payload."
+        reason
       );
       return apiSuccess(DEFAULT_MASJID_PROFILE);
     }
@@ -73,6 +78,13 @@ export async function PUT(request: NextRequest) {
     if (isMasjidProfileSchemaMismatchError(error)) {
       return apiError(
         "Skema database profil masjid belum sinkron dengan kode terbaru. Jalankan migrasi database terlebih dahulu.",
+        503
+      );
+    }
+
+    if (isDatabaseConnectivityError(error)) {
+      return apiError(
+        "Database profil masjid sedang tidak dapat dijangkau. Coba lagi setelah koneksi database normal.",
         503
       );
     }

@@ -54,7 +54,7 @@ export function ArticleDetailSidebar({
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700/80">
                 {item.categoryName ?? "Publikasi"}
               </p>
-              <h3 className="mt-2 line-clamp-3 text-sm font-semibold leading-6 text-slate-900 transition-colors group-hover:text-emerald-900">
+              <h3 className="mt-2 line-clamp-3 text-sm font-semibold leading-6 capitalize text-slate-900 transition-colors group-hover:text-emerald-900">
                 {truncateText(item.title, 84)}
               </h3>
               <div className="mt-3 flex items-center gap-2">

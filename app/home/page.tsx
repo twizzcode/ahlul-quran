@@ -281,7 +281,7 @@ export default async function HomePage() {
       {/* ─── Hero Section ─── */}
       <section className="relative mt-[var(--home-nav-height)] w-full min-h-[calc(85vh-var(--home-nav-height))] overflow-hidden">
         <Image
-          src={specialCampaign.coverImage || "/Gambar-masjid.png"}
+          src="/Gambar-masjid.png"
           alt={specialCampaign.title}
           fill
           priority

@@ -186,7 +186,7 @@ export function DonationCheckoutForm({
               </div>
 
               <div className="min-w-0">
-                <h3 className="text-2xl font-bold leading-tight text-slate-900">
+                <h3 className="text-2xl font-bold leading-tight capitalize text-slate-900">
                   {campaign.title}
                 </h3>
                 <p className="mt-3 text-sm leading-7 text-slate-600">

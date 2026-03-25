@@ -1,3 +1,5 @@
+import { Prisma } from "@/lib/generated/prisma/client";
+
 export type VisionItem = {
   title: string;
   description: string;
@@ -296,12 +298,55 @@ export const DEFAULT_MASJID_PROFILE: MasjidProfileData = {
   ],
 };
 
+function readErrorCode(error: unknown) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+  ) {
+    return error.code;
+  }
+
+  return null;
+}
+
 export function isMasjidProfileSchemaMismatchError(error: unknown) {
   if (!(error instanceof Error)) {
     return false;
   }
 
   return error.message.includes("does not exist in the current database");
+}
+
+export function isDatabaseConnectivityError(error: unknown) {
+  const code = readErrorCode(error);
+
+  if (code === "P1001" || code === "ETIMEDOUT" || code === "ECONNREFUSED") {
+    return true;
+  }
+
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return true;
+  }
+
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return [
+    "Can't reach database server",
+    "Timed out fetching a new connection from the connection pool",
+    "ETIMEDOUT",
+    "ECONNREFUSED",
+    "ENOTFOUND",
+  ].some((snippet) => error.message.includes(snippet));
+}
+
+export function isMasjidProfileReadFallbackError(error: unknown) {
+  return (
+    isMasjidProfileSchemaMismatchError(error) || isDatabaseConnectivityError(error)
+  );
 }
 
 export function normalizeMasjidProfile(

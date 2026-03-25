@@ -48,7 +48,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }
 
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" variant="inset" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -70,7 +70,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         {/* Main Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel>Menu Utama</SidebarGroupLabel>
+          <SidebarGroupLabel>
+            Menu Utama
+          </SidebarGroupLabel>
           <SidebarMenu>
             {ADMIN_NAV_ITEMS.main.map((item) => {
               const Icon = iconMap[item.title]
@@ -81,6 +83,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     asChild
                     tooltip={item.title}
                     isActive={isActive(item.url)}
+                    className="rounded-xl px-3 py-2.5 data-[active=true]:bg-emerald-100 data-[active=true]:text-emerald-950 hover:bg-emerald-50 hover:text-emerald-950"
                   >
                     <Link href={item.url}>
                       <Icon />
@@ -95,7 +98,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
         {/* Settings */}
         <SidebarGroup>
-          <SidebarGroupLabel>Pengaturan</SidebarGroupLabel>
+          <SidebarGroupLabel>
+            Pengaturan
+          </SidebarGroupLabel>
           <SidebarMenu>
             {ADMIN_NAV_ITEMS.settings.map((item) => {
               const Icon = iconMap[item.title]
@@ -106,6 +111,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     asChild
                     tooltip={item.title}
                     isActive={isActive(item.url)}
+                    className="rounded-xl px-3 py-2.5 data-[active=true]:bg-emerald-100 data-[active=true]:text-emerald-950 hover:bg-emerald-50 hover:text-emerald-950"
                   >
                     <Link href={item.url}>
                       <Icon />
@@ -122,7 +128,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup className="mt-auto">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Lihat Website">
+              <SidebarMenuButton
+                asChild
+                tooltip="Lihat Website"
+                className="rounded-xl border border-dashed border-emerald-200 px-3 py-2.5 text-emerald-900 hover:border-emerald-300 hover:bg-emerald-50"
+              >
                 <a href="/" target="_blank" rel="noopener noreferrer">
                   <ExternalLink />
                   <span>Lihat Website</span>

@@ -319,7 +319,7 @@ export default async function DonationCampaignDetailPage({
                           ) : null}
 
                           <div className="min-w-0 flex-1">
-                            <h3 className="text-xl font-semibold leading-tight text-emerald-950">
+                            <h3 className="text-xl font-semibold leading-tight capitalize text-emerald-950">
                               {article.title}
                             </h3>
 

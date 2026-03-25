@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useEffect, useState, type ComponentProps, type FormEvent } from "react"
 import { cn } from "@/lib/utils"
 import { signIn, useSession } from "@/lib/auth-client"
@@ -74,10 +75,11 @@ export function LoginForm({
               </div>
             </div>
             <div className="relative hidden bg-muted md:block">
-              <img
+              <Image
                 src="/Gambar-masjid.png"
                 alt="Image"
-                className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+                fill
+                className="object-cover dark:brightness-[0.2] dark:grayscale"
               />
             </div>
           </CardContent>
@@ -170,10 +172,11 @@ export function LoginForm({
             </FieldGroup>
           </form>
           <div className="relative hidden bg-muted md:block">
-            <img
+            <Image
               src="/Gambar-masjid.png"
               alt="Image"
-              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+              fill
+              className="object-cover dark:brightness-[0.2] dark:grayscale"
             />
           </div>
         </CardContent>

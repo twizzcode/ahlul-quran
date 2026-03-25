@@ -3,7 +3,8 @@ import "server-only";
 import prisma from "@/lib/prisma";
 import {
   DEFAULT_MASJID_PROFILE,
-  isMasjidProfileSchemaMismatchError,
+  isDatabaseConnectivityError,
+  isMasjidProfileReadFallbackError,
   normalizeMasjidProfile,
 } from "@/lib/masjid-profile";
 
@@ -12,9 +13,12 @@ export async function getMasjidProfileData() {
     const profile = await prisma.masjidProfile.findFirst();
     return normalizeMasjidProfile(profile);
   } catch (error) {
-    if (isMasjidProfileSchemaMismatchError(error)) {
+    if (isMasjidProfileReadFallbackError(error)) {
+      const reason = isDatabaseConnectivityError(error)
+        ? "Database masjid profile tidak dapat dijangkau. Menggunakan profil default."
+        : "Masjid profile schema is ahead of the active database. Falling back to default profile.";
       console.warn(
-        "Masjid profile schema is ahead of the active database. Falling back to default profile."
+        reason
       );
       return DEFAULT_MASJID_PROFILE;
     }

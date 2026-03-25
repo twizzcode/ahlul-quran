@@ -113,7 +113,7 @@ export default async function BeritaPage({
 
                 <div className="min-w-0 flex flex-1 self-stretch flex-col justify-between">
                   <div>
-                    <h2 className="line-clamp-2 text-base font-semibold leading-snug transition-colors group-hover:text-primary sm:text-lg">
+                    <h2 className="line-clamp-2 text-base font-semibold leading-snug capitalize transition-colors group-hover:text-primary sm:text-lg">
                       {article.title}
                     </h2>
                     <p className="hidden xl:mt-3 xl:line-clamp-2 xl:text-sm xl:leading-6 xl:text-muted-foreground">

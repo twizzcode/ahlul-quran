@@ -8,16 +8,9 @@ import { BookOpenText, ChevronDown, Newspaper, Phone } from "lucide-react";
 import {
   MobileNav,
   MobileNavHeader,
-  MobileNavMenu,
-  MobileNavToggle,
   NavBody,
   Navbar,
 } from "@/components/ui/resizable-navbar";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import type { MasjidProfileData } from "@/lib/masjid-profile";
 
@@ -124,9 +117,6 @@ function getContactHref(profile: MasjidProfileData) {
 }
 
 export function HomeNavbar({ profile }: { profile: MasjidProfileData }) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobileNewsOpen, setIsMobileNewsOpen] = useState(false);
-  const [isMobileProfileOpen, setIsMobileProfileOpen] = useState(false);
   const [isNewsMenuOpen, setIsNewsMenuOpen] = useState(false);
   const [isProfileMegaOpen, setIsProfileMegaOpen] = useState(false);
   const pathname = usePathname();
@@ -323,146 +313,7 @@ export function HomeNavbar({ profile }: { profile: MasjidProfileData }) {
         <MobileNav className="group/home-nav fixed inset-x-0 top-0 z-[110] min-h-[var(--home-nav-height)] max-w-none rounded-none bg-white/95 px-4 text-emerald-900 shadow-sm backdrop-blur data-[scrolled=true]:bg-white">
           <MobileNavHeader>
             <Brand profile={profile} />
-            {/* <MobileNavToggle
-              isOpen={isMobileMenuOpen}
-              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-            /> */}
           </MobileNavHeader>
-
-          {/* <MobileNavMenu
-            isOpen={isMobileMenuOpen}
-            onClose={() => setIsMobileMenuOpen(false)}
-          >
-            <Collapsible
-              open={isMobileNewsOpen}
-              onOpenChange={setIsMobileNewsOpen}
-              className="w-full"
-            >
-              <CollapsibleTrigger
-                className={cn(
-                  "relative flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-all duration-200",
-                  isNewsActive
-                    ? "bg-emerald-50 font-semibold text-emerald-900"
-                    : "text-emerald-900/85 hover:bg-emerald-50 hover:text-emerald-900",
-                )}
-              >
-                <span>Berita</span>
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 transition-transform",
-                    isMobileNewsOpen && "rotate-180",
-                  )}
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 rounded-xl bg-emerald-50/40 p-2">
-                <div className="divide-y divide-emerald-200/70">
-                  {newsItems.map((item) => {
-                    const Icon = item.icon;
-
-                    return (
-                      <Link
-                        key={item.link}
-                        onClick={() => {
-                          setIsMobileMenuOpen(false);
-                          setIsMobileNewsOpen(false);
-                        }}
-                        href={item.link}
-                        className="group flex items-start gap-3 rounded-xl px-3 py-3 text-sm text-emerald-900/85 transition-all duration-200 hover:bg-emerald-100/80 hover:text-emerald-900"
-                      >
-                        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-emerald-800 shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:bg-emerald-900 group-hover:text-white">
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-medium transition-colors group-hover:text-emerald-950">
-                            {item.name}
-                          </p>
-                          <p className="mt-1 text-xs text-emerald-900/60 transition-colors group-hover:text-emerald-900/80">
-                            {item.description}
-                          </p>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-
-            {navItems.map((item) => (
-              <Link
-                key={item.link}
-                onClick={() => setIsMobileMenuOpen(false)}
-                href={item.link}
-                className={cn(
-                  "relative block w-full rounded-md px-3 py-2 text-sm transition-all duration-200",
-                  isActive(item.link)
-                    ? "bg-emerald-50 text-emerald-900 font-semibold"
-                    : "text-emerald-900/85 hover:bg-emerald-50 hover:text-emerald-900",
-                )}
-              >
-                {item.name}
-              </Link>
-            ))}
-            <Collapsible
-              open={isMobileProfileOpen}
-              onOpenChange={setIsMobileProfileOpen}
-              className="w-full"
-            >
-              <CollapsibleTrigger
-                className={cn(
-                  "relative flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-all duration-200",
-                  isProfileActive
-                    ? "bg-emerald-50 text-emerald-900 font-semibold"
-                    : "text-emerald-900/85 hover:bg-emerald-50 hover:text-emerald-900",
-                )}
-              >
-                <span>Profil</span>
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 transition-transform",
-                    isMobileProfileOpen && "rotate-180",
-                  )}
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 rounded-xl bg-emerald-50/40 p-2">
-                <div className="divide-y divide-emerald-200/70">
-                  {profileItems.map((item, index) => (
-                    <Link
-                      key={item.link}
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        setIsMobileProfileOpen(false);
-                      }}
-                      href={item.link}
-                      className="group flex items-start gap-3 rounded-xl px-3 py-3 text-sm text-emerald-900/85 transition-all duration-200 hover:bg-emerald-100/80 hover:text-emerald-900"
-                    >
-                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-emerald-800 shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:bg-emerald-900 group-hover:text-white">
-                        {(index + 1).toString().padStart(2, "0")}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium transition-colors group-hover:text-emerald-950">
-                          {item.name}
-                        </p>
-                        <p className="mt-1 text-xs text-emerald-900/60 transition-colors group-hover:text-emerald-900/80">
-                          {item.description}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-
-            <div className="flex w-full flex-col gap-3 pt-2">
-              <Link
-                onClick={() => setIsMobileMenuOpen(false)}
-                href={contactHref}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-900 px-5 py-3 text-sm font-medium text-white transition-all duration-200 hover:bg-emerald-950"
-              >
-                <Phone className="h-4 w-4" />
-                Contact Us
-              </Link>
-            </div>
-          </MobileNavMenu> */}
         </MobileNav>
       </Navbar>
     </>

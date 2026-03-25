@@ -124,7 +124,7 @@ export default async function BeritaDetailPage({ params }: BeritaDetailPageProps
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-10">
         <div>
           <header className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight text-emerald-950 md:text-4xl">
+            <h1 className="text-3xl font-bold tracking-tight capitalize text-emerald-950 md:text-4xl">
               {article.title}
             </h1>
 
