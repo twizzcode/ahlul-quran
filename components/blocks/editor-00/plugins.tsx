@@ -64,6 +64,7 @@ import {
   Unlink,
 } from "lucide-react"
 import {
+  $createParagraphNode,
   $getRoot,
   $getSelection,
   $isElementNode,

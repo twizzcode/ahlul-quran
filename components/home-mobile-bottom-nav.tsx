@@ -72,7 +72,7 @@ const navItems = [
   { label: "Donasi", href: "/donasi", icon: "donasi" },
   { label: "Galeri", href: "/galeri", icon: "galeri" },
   { label: "Profil", href: "/profil", icon: "profil" },
-];
+] as const;
 
 function isActive(pathname: string, href: string) {
   if (href === "/berita") {

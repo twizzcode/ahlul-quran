@@ -44,7 +44,7 @@ export const AnimatedTooltip = ({
     }
 
     animationFrameRef.current = requestAnimationFrame(() => {
-      const halfWidth = event.target.offsetWidth / 2;
+      const halfWidth = event.currentTarget.offsetWidth / 2;
       x.set(event.nativeEvent.offsetX - halfWidth);
     });
   };

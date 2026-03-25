@@ -36,6 +36,16 @@ export async function GET(
     try {
       midtransStatus = await getTransactionStatus(orderId);
 
+      if (!midtransStatus) {
+        return apiSuccess({
+          donation: {
+            ...donation,
+            donorName: donation.isAnonymous ? "Hamba Allah" : donation.donorName,
+          },
+          midtransStatus,
+        });
+      }
+
       const latestStatus = mapMidtransTransactionStatus(
         midtransStatus.transaction_status || "",
         midtransStatus.fraud_status

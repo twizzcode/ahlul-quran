@@ -58,7 +58,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
         }
 
         return {
-          conversion: convertImageElement,
+          conversion: () => convertImageElement(domNode),
           priority: 1,
         };
       },

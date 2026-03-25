@@ -42,7 +42,7 @@ export default async function DashboardArtikelPage({
       where,
       include: {
         author: { select: { name: true } },
-        category: { select: { id: true, name: true } },
+        category: { select: { id: true, name: true, slug: true } },
       },
       orderBy: { updatedAt: "desc" },
       take: 100,
