@@ -1,0 +1,2 @@
+ALTER TYPE "user_role" RENAME VALUE 'SUPER_ADMIN' TO 'DEVELOPER';--> statement-breakpoint
+ALTER TYPE "user_role" RENAME VALUE 'TAKMIR' TO 'OWNER';

@@ -1,0 +1,1 @@
+ALTER TABLE "masjid_profile" ADD COLUMN "homepage_testimonials" jsonb;
