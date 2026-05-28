@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Calendar, Clock, Eye, User } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Calendar, Clock, Eye, User } from "lucide-react";
 import { ArticleDetailSidebar } from "@/components/content/article-detail-sidebar";
 import dbQuery from "@/lib/data/db-query";
 import {
@@ -182,6 +182,19 @@ export default async function BeritaDetailPage({ params }: BeritaDetailPageProps
                 ))
             )}
           </div>
+
+          {article.donationCampaign ? (
+            <section className="mt-10 border-t border-emerald-100 pt-6">
+              <p className="text-sm text-slate-500">Campaign terkait</p>
+              <Link
+                href={`/donasi/${article.donationCampaign.slug}`}
+                className="mt-2 inline-flex items-center gap-2 text-base font-semibold text-emerald-800 transition hover:text-emerald-950"
+              >
+                {article.donationCampaign.title}
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </section>
+          ) : null}
 
           <footer className="mt-12 border-t pt-8">
             <Button variant="outline" asChild>

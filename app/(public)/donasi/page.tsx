@@ -66,6 +66,7 @@ export default async function DonasiPage() {
       collectedAmount,
       progress,
       endDate: campaign.endDate ? campaign.endDate.toISOString() : null,
+      createdAt: campaign.createdAt.toISOString(),
       supporters: Array.from(
         campaign.donations.reduce((acc, donation) => {
           const name = donation.isAnonymous ? "Hamba Allah" : donation.donorName;

@@ -43,6 +43,7 @@ export default async function DashboardDonasiPage() {
       endDate: campaign.endDate ? campaign.endDate.toISOString() : null,
       createdAt: campaign.createdAt.toISOString(),
       linkedArticles: [],
+      linkedGalleries: [],
     };
   });
 

@@ -71,6 +71,20 @@
       "when": 1780275600000,
       "tag": "0009_calm_qris_toggle",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1780362000000,
+      "tag": "0010_remove_midtrans_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1780459200000,
+      "tag": "0011_link_gallery_to_campaigns",
+      "breakpoints": true
     }
   ]
 }

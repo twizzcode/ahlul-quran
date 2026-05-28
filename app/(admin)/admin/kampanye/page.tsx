@@ -1,12 +1,12 @@
-import { desc, eq } from "drizzle-orm";
-import { DashboardDonationManagement, type DashboardCampaignItem, type DashboardCampaignLinkedArticle, type DashboardDonationItem } from "@/components/dashboard/donations/dashboard-donation-management";
+import { asc, desc, eq, isNull } from "drizzle-orm";
+import { DashboardDonationManagement, type DashboardCampaignGalleryOption, type DashboardCampaignItem, type DashboardCampaignLinkedArticle, type DashboardCampaignLinkedGallery, type DashboardDonationItem } from "@/components/dashboard/donations/dashboard-donation-management";
 import { db } from "@/src";
-import { article, donation, donationCampaign } from "@/src/db/schema";
+import { article, donation, donationCampaign, gallery } from "@/src/db/schema";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardKampanyePage() {
-  const [donationsRaw, campaignsRaw] = await Promise.all([
+  const [donationsRaw, campaignsRaw, galleriesRaw] = await Promise.all([
     db.query.donation.findMany({
       with: {
         campaign: { columns: { id: true, title: true } },
@@ -30,8 +30,19 @@ export default async function DashboardKampanyePage() {
           },
           orderBy: [desc(article.publishedAt), desc(article.createdAt)],
         },
+        galleries: {
+          with: {
+            images: true,
+          },
+          orderBy: (table, { asc: orderAsc }) => [orderAsc(table.createdAt)],
+        },
       },
       orderBy: [desc(donationCampaign.createdAt)],
+    }),
+    db.query.gallery.findMany({
+      where: isNull(gallery.donationCampaignId),
+      with: { images: true },
+      orderBy: [asc(gallery.createdAt)],
     }),
   ]);
 
@@ -60,8 +71,25 @@ export default async function DashboardKampanyePage() {
           publishedAt: (item.publishedAt ?? item.createdAt).toISOString(),
         }),
       ),
+      linkedGalleries: campaign.galleries.map(
+        (item): DashboardCampaignLinkedGallery => ({
+          id: item.id,
+          title: item.title,
+          createdAt: item.createdAt.toISOString(),
+          imageCount: item.images.length,
+          coverImage: item.images.sort((a, b) => a.order - b.order)[0]?.url ?? null,
+        }),
+      ),
     };
   });
+
+  const galleryOptions: DashboardCampaignGalleryOption[] = galleriesRaw.map((item) => ({
+    id: item.id,
+    title: item.title,
+    createdAt: item.createdAt.toISOString(),
+    imageCount: item.images.length,
+    coverImage: item.images.sort((a, b) => a.order - b.order)[0]?.url ?? null,
+  }));
 
   const donations: DashboardDonationItem[] = donationsRaw.map((item) => ({
     id: item.id,
@@ -75,5 +103,5 @@ export default async function DashboardKampanyePage() {
     campaignTitle: item.campaign?.title ?? null,
   }));
 
-  return <DashboardDonationManagement mode="campaigns" initialCampaigns={campaigns} initialDonations={donations} />;
+  return <DashboardDonationManagement mode="campaigns" initialCampaigns={campaigns} initialDonations={donations} galleryOptions={galleryOptions} />;
 }

@@ -12,16 +12,10 @@ export default async function DashboardArtikelTulisPage({
   const params = await searchParams;
   const initialType: PublicArticleType = params.type === "berita" ? "berita" : "artikel";
 
-  const [categories, campaigns] = await Promise.all([
-    db.query.articleCategory.findMany({
-      columns: { id: true, name: true },
-      orderBy: (table, { asc }) => [asc(table.name)],
-    }),
-    db.query.donationCampaign.findMany({
-      columns: { id: true, title: true },
-      orderBy: (table, { desc }) => [desc(table.createdAt)],
-    }),
-  ]);
+  const campaigns = await db.query.donationCampaign.findMany({
+    columns: { id: true, title: true },
+    orderBy: (table, { desc }) => [desc(table.createdAt)],
+  });
 
-  return <ArticleEditorForm mode="create" categories={categories} campaigns={campaigns} initialType={initialType} />;
+  return <ArticleEditorForm mode="create" campaigns={campaigns} initialType={initialType} />;
 }

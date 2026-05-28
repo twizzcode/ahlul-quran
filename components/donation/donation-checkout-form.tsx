@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   Avatar,
   AvatarFallback,
@@ -91,7 +92,7 @@ export function DonationCheckoutForm({
   campaign,
 }: DonationCheckoutFormProps) {
   const { data: session } = useSession();
-  const [paymentMethod, setPaymentMethod] = useState<"QRIS" | "BSI_TRANSFER">("QRIS");
+  const [paymentMethod] = useState<"BSI_TRANSFER">("BSI_TRANSFER");
   const [selectedPresetAmount, setSelectedPresetAmount] = useState<number>(100000);
   const [customAmount, setCustomAmount] = useState<string>("");
   const [donorName, setDonorName] = useState<string>("");
@@ -327,63 +328,29 @@ export function DonationCheckoutForm({
 
             <div className="mt-5">
               <label className="mb-2 block text-sm font-medium">Metode Pembayaran</label>
-              <div className="grid gap-3">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("QRIS")}
-                  data-selected={paymentMethod === "QRIS"}
-                  className="rounded-xl border border-slate-200 px-4 py-4 text-left transition hover:border-emerald-200 hover:bg-emerald-50/50 data-[selected=true]:border-emerald-600 data-[selected=true]:bg-emerald-50"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-9 w-9 overflow-hidden rounded-md bg-white">
-                        <Image
-                          src="/Qris.png"
-                          alt="Logo QRIS"
-                          fill
-                          className="object-contain p-1"
-                        />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-900">QRIS</p>
-                        <p className="mt-1 text-sm text-slate-500">
-                          Metode tercepat. QRIS akan ditampilkan di halaman berikutnya.
-                        </p>
-                      </div>
-                    </div>
-                    <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                      Recommended
-                    </span>
+              <div className="py-2">
+                <div className="flex items-center gap-3">
+                  <div className="relative h-9 w-9 overflow-hidden rounded-md bg-white">
+                    <Image
+                      src="/bsi.png"
+                      alt="Logo Bank BSI"
+                      fill
+                      className="object-contain p-1"
+                    />
                   </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("BSI_TRANSFER")}
-                  data-selected={paymentMethod === "BSI_TRANSFER"}
-                  className="rounded-xl border border-slate-200 px-4 py-4 text-left transition hover:border-emerald-200 hover:bg-emerald-50/50 data-[selected=true]:border-emerald-600 data-[selected=true]:bg-emerald-50"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative h-9 w-9 overflow-hidden rounded-md bg-white">
-                      <Image
-                        src="/bsi.png"
-                        alt="Logo Bank BSI"
-                        fill
-                        className="object-contain p-1"
-                      />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900">Transfer Bank BSI</p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        Detail rekening akan ditampilkan di halaman berikutnya.
-                      </p>
-                    </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">Transfer Bank BSI</p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Detail rekening akan ditampilkan di halaman berikutnya.
+                    </p>
                   </div>
-                </button>
+                </div>
               </div>
             </div>
 
-            <div className="mt-5 rounded-lg bg-muted p-3 text-sm">
+            <Separator className="mt-6 bg-emerald-100" />
+
+            <div className="mt-5 text-sm">
               <p>
                 Total donasi:{" "}
                 <span className="font-semibold">{formatCurrency(donationAmount || 0)}</span>
@@ -472,12 +439,8 @@ export function DonationCheckoutForm({
               disabled={isSubmitting}
             >
               {isSubmitting
-                ? paymentMethod === "QRIS"
-                  ? "Mengalihkan ke QRIS..."
-                  : "Membuat Instruksi Transfer..."
-                : paymentMethod === "QRIS"
-                  ? "Lanjut ke QRIS"
-                  : "Buat Instruksi Transfer"}
+                ? "Membuat Instruksi Transfer..."
+                : "Buat Instruksi Transfer"}
             </Button>
           </div>
         </div>

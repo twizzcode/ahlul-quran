@@ -27,11 +27,6 @@ import {
   withArticleTypeTag,
 } from "@/lib/content/public-articles";
 
-type CategoryOption = {
-  id: string;
-  name: string;
-};
-
 type CampaignOption = {
   id: string;
   title: string;
@@ -43,19 +38,16 @@ type InitialArticle = {
   excerpt: string | null;
   content: string;
   coverImage: string | null;
-  categoryId: string | null;
   donationCampaignId: string | null;
   tags: string[];
 };
 
 type ArticleEditorFormProps = {
   mode: "create" | "edit";
-  categories: CategoryOption[];
   campaigns: CampaignOption[];
   initialArticle?: InitialArticle;
   initialType?: PublicArticleType;
 };
-
 const EMPTY_SELECT_VALUE = "__none__";
 
 function getPlainTextFromHtml(html: string) {
@@ -73,7 +65,6 @@ function getBlobImageSourcesFromHtml(html: string) {
 
 export function ArticleEditorForm({
   mode,
-  categories,
   campaigns,
   initialArticle,
   initialType = "artikel",
@@ -90,16 +81,9 @@ export function ArticleEditorForm({
     initialArticle ? getVisibleArticleTags(initialArticle.tags).join(", ") : ""
   );
   const [content, setContent] = useState(initialArticle?.content || "");
-  const [categoryMode, setCategoryMode] = useState<"existing" | "new">(
-    initialArticle?.categoryId ? "existing" : categories.length > 0 ? "existing" : "new"
-  );
-  const [selectedCategoryId, setSelectedCategoryId] = useState(
-    initialArticle?.categoryId || ""
-  );
   const [selectedCampaignId, setSelectedCampaignId] = useState(
     initialArticle?.donationCampaignId || ""
   );
-  const [newCategoryName, setNewCategoryName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [pendingCoverImage, setPendingCoverImage] = useState<PendingUploadImage | null>(null);
@@ -170,16 +154,6 @@ export function ArticleEditorForm({
     setCoverImage(value);
   }
 
-  function handlePendingContentImageAdd(file: File, previewUrl: string) {
-    setPendingContentImages((current) => {
-      if (current.some((item) => item.previewUrl === previewUrl)) {
-        return current;
-      }
-
-      return [...current, { file, previewUrl }];
-    });
-  }
-
   async function submitArticle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
@@ -192,11 +166,6 @@ export function ArticleEditorForm({
     const plainContent = getPlainTextFromHtml(content);
     if (plainContent.length < 10) {
       setErrorMessage("Konten minimal 10 karakter.");
-      return;
-    }
-
-    if (categoryMode === "new" && newCategoryName.trim() !== "" && newCategoryName.trim().length < 3) {
-      setErrorMessage("Sub tema baru minimal 3 karakter.");
       return;
     }
 
@@ -236,20 +205,6 @@ export function ArticleEditorForm({
         payload.donationCampaignId = null;
       } else if (articleType === "berita" && !selectedCampaignId && mode === "edit") {
         payload.donationCampaignId = null;
-      }
-
-      if (categoryMode === "existing") {
-        if (selectedCategoryId) {
-          payload.categoryId = selectedCategoryId;
-        } else if (mode === "edit") {
-          payload.categoryId = null;
-        }
-      } else {
-        if (newCategoryName.trim()) {
-          payload.categoryName = newCategoryName.trim();
-        } else if (mode === "edit") {
-          payload.categoryId = null;
-        }
       }
 
       if (mode === "create") {
@@ -300,7 +255,7 @@ export function ArticleEditorForm({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">
@@ -309,15 +264,20 @@ export function ArticleEditorForm({
               : `Edit ${articleType === "berita" ? "Berita" : "Artikel"}`}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Lengkapi judul, sub tema, dan isi konten.
+            Lengkapi judul dan isi konten.
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/artikel">Kembali ke Daftar Artikel</Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="outline" asChild>
+            <Link href="/artikel">Kembali ke Daftar Artikel</Link>
+          </Button>
+          <Button type="submit" form="article-editor-form" disabled={isSubmitting}>
+            {submitLabel}
+          </Button>
+        </div>
       </div>
 
-      <form className="space-y-6" onSubmit={submitArticle}>
+      <form id="article-editor-form" className="space-y-6" onSubmit={submitArticle}>
         <div className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
           <section className="space-y-6 xl:sticky xl:top-6 xl:self-start">
             <section className="rounded-2xl border bg-card p-5 shadow-sm">
@@ -379,75 +339,6 @@ export function ArticleEditorForm({
                 </div>
 
                 <div className="space-y-4 border-t pt-5">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      Organisasi Konten
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-medium">Tipe / Sub Tema</label>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={categoryMode === "existing" ? "default" : "outline"}
-                        onClick={() => setCategoryMode("existing")}
-                      >
-                        Pilih yang ada
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={categoryMode === "new" ? "default" : "outline"}
-                        onClick={() => setCategoryMode("new")}
-                      >
-                        Buat sub tema baru
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div>
-                    {categoryMode === "existing" ? (
-                      <>
-                        <label className="mb-2 block text-sm font-medium">Kategori</label>
-                        <Select
-                          value={selectedCategoryId || EMPTY_SELECT_VALUE}
-                          onValueChange={(value) =>
-                            setSelectedCategoryId(
-                              value === EMPTY_SELECT_VALUE ? "" : value
-                            )
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Tanpa kategori" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={EMPTY_SELECT_VALUE}>
-                              Tanpa kategori
-                            </SelectItem>
-                            {categories.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
-                                {category.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </>
-                    ) : (
-                      <>
-                        <label className="mb-2 block text-sm font-medium">Nama Sub Tema Baru</label>
-                        <input
-                          type="text"
-                          value={newCategoryName}
-                          onChange={(event) => setNewCategoryName(event.target.value)}
-                          placeholder="Contoh: Akhlak Remaja"
-                          className="flex h-11 w-full rounded-xl border border-input bg-background px-4 text-sm"
-                        />
-                      </>
-                    )}
-                  </div>
-
                   {articleType === "berita" ? (
                     <div>
                       <label className="mb-2 block text-sm font-medium">Campaign Terkait</label>
@@ -494,23 +385,13 @@ export function ArticleEditorForm({
             </div>
           </section>
 
-          <section className="rounded-2xl border bg-card shadow-sm">
-            <div className="border-b px-5 py-4">
-              <h2 className="font-semibold">Konten Artikel</h2>
-              <p className="text-xs text-muted-foreground">
-                Gambar di editor disimpan lokal dulu, lalu diupload ke Cloudflare R2 saat kamu menekan tombol simpan.
-              </p>
-            </div>
-            <div className="p-5">
-              <Editor
-                html={content}
-                onHtmlChange={setContent}
-                placeholder="Tulis isi artikel atau berita di sini..."
-                imageUploadFolder="articles/content"
-                onPendingImageAdd={handlePendingContentImageAdd}
-                onUploadError={setErrorMessage}
-              />
-            </div>
+          <section>
+            <Editor
+              html={content}
+              onHtmlChange={setContent}
+              placeholder="Tulis isi artikel atau berita di sini..."
+              allowImageUpload={false}
+            />
           </section>
         </div>
 
@@ -519,12 +400,6 @@ export function ArticleEditorForm({
             {errorMessage}
           </div>
         ) : null}
-
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" disabled={isSubmitting}>
-            {submitLabel}
-          </Button>
-        </div>
       </form>
     </div>
   );

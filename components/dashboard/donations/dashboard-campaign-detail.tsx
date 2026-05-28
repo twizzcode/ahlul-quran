@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -16,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  type DashboardCampaignGalleryOption,
   type DashboardCampaignItem,
   type DashboardDonationItem,
 } from "@/components/dashboard/donations/dashboard-donation-management";
@@ -25,6 +27,7 @@ import { formatCurrency, formatDateTime } from "@/lib/utils";
 type DashboardCampaignDetailProps = {
   campaign: DashboardCampaignItem;
   donations: DashboardDonationItem[];
+  galleryOptions: DashboardCampaignGalleryOption[];
 };
 
 function getStatusClass(status: DashboardDonationItem["status"]) {
@@ -44,11 +47,15 @@ function toDateInputValue(dateIso: string | null) {
 export function DashboardCampaignDetail({
   campaign,
   donations,
+  galleryOptions,
 }: DashboardCampaignDetailProps) {
   const router = useRouter();
   const [coverImage, setCoverImage] = useState(campaign.coverImage ?? "");
   const [endDate, setEndDate] = useState(toDateInputValue(campaign.endDate));
   const [statusValue, setStatusValue] = useState(campaign.isActive ? "true" : "false");
+  const [linkedGalleryIds, setLinkedGalleryIds] = useState(
+    campaign.linkedGalleries.map((item) => item.id)
+  );
   const [pendingCoverImage, setPendingCoverImage] = useState<PendingUploadImage | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -59,7 +66,8 @@ export function DashboardCampaignDetail({
     setCoverImage(campaign.coverImage ?? "");
     setEndDate(toDateInputValue(campaign.endDate));
     setStatusValue(campaign.isActive ? "true" : "false");
-  }, [campaign.coverImage, campaign.endDate, campaign.isActive]);
+    setLinkedGalleryIds(campaign.linkedGalleries.map((item) => item.id));
+  }, [campaign.coverImage, campaign.endDate, campaign.isActive, campaign.linkedGalleries]);
 
   useEffect(() => {
     pendingCoverImageRef.current = pendingCoverImage;
@@ -133,6 +141,7 @@ export function DashboardCampaignDetail({
           targetAmount,
           isActive: statusValue === "true",
           endDate: endDate ? new Date(`${endDate}T23:59:59`).toISOString() : null,
+          linkedGalleryIds,
         }),
       });
       const result = await response.json();
@@ -286,6 +295,57 @@ export function DashboardCampaignDetail({
                 </div>
               </div>
             </section>
+
+            <section className="rounded-[24px] border bg-card p-5">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Galeri Tertaut
+              </h3>
+              <div className="mt-4">
+                {galleryOptions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Belum ada galeri yang tersedia untuk ditautkan.
+                  </p>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {galleryOptions.map((gallery) => {
+                      const isSelected = linkedGalleryIds.includes(gallery.id);
+
+                      return (
+                        <label
+                          key={gallery.id}
+                          className={
+                            isSelected
+                              ? "flex cursor-pointer items-start gap-3 rounded-2xl border border-emerald-700 bg-emerald-50 p-3"
+                              : "flex cursor-pointer items-start gap-3 rounded-2xl border border-emerald-100 p-3 hover:border-emerald-300"
+                          }
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(event) => {
+                              setLinkedGalleryIds((current) =>
+                                event.target.checked
+                                  ? [...current, gallery.id]
+                                  : current.filter((id) => id !== gallery.id)
+                              );
+                            }}
+                            className="mt-1 rounded border-input"
+                          />
+                          <div className="min-w-0">
+                            <p className="line-clamp-2 text-sm font-semibold text-slate-900">
+                              {gallery.title}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {gallery.imageCount} foto
+                            </p>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </section>
             <div className="flex flex-wrap justify-between gap-3">
               <Button type="button" variant="destructive" disabled={isDeleting} onClick={handleDelete}>
                 {isDeleting ? "Menghapus..." : "Hapus Kampanye"}
@@ -338,6 +398,42 @@ export function DashboardCampaignDetail({
                 <p className="mt-1 text-lg font-semibold">{campaign.isActive ? "Aktif" : "Nonaktif"}</p>
               </div>
             </div>
+          </section>
+
+          <section className="rounded-[24px] border bg-card p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-semibold">Galeri Tertaut</h2>
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                {campaign.linkedGalleries.length}
+              </span>
+            </div>
+            {campaign.linkedGalleries.length === 0 ? (
+              <div className="mt-4 rounded-xl border p-4 text-sm text-muted-foreground">
+                Belum ada galeri yang tertaut ke kampanye ini.
+              </div>
+            ) : (
+              <div className="mt-4 space-y-2">
+                {campaign.linkedGalleries.map((gallery) => (
+                  <div key={gallery.id} className="flex items-center gap-3 rounded-xl border p-3">
+                    {gallery.coverImage ? (
+                      <div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-lg bg-muted">
+                        <Image src={gallery.coverImage} alt={gallery.title} fill className="object-cover" />
+                      </div>
+                    ) : (
+                      <div className="flex h-14 w-16 shrink-0 items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">
+                        No Cover
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="line-clamp-2 text-sm font-medium">{gallery.title}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {gallery.imageCount} foto • {formatDateTime(gallery.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           <section className="rounded-[24px] border bg-card p-5">

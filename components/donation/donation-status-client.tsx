@@ -21,8 +21,9 @@ type DonationDetail = {
   paymentType: string | null;
   createdAt: string;
   paidAt: string | null;
-  snapRedirectUrl?: string | null;
+  qrisImageUrl?: string | null;
   donorName?: string | null;
+  snapRedirectUrl?: string | null;
 };
 
 function isManualBsiTransfer(paymentType: string | null) {
@@ -83,7 +84,7 @@ function getStatusMeta(donation: DonationDetail | null) {
     className: "bg-yellow-100 text-yellow-700",
     description: isManualBsiTransfer(paymentType)
       ? "Donasi transfer bank sudah tercatat dan sedang menunggu verifikasi admin."
-      : "Donasi sedang diproses. Selesaikan pembayaran QRIS Anda melalui Midtrans.",
+      : "Donasi sedang diproses. Selesaikan pembayaran QRIS Anda.",
   };
 }
 
@@ -195,15 +196,16 @@ export function DonationStatusClient({
         donorName: donation.donorName,
       })
     : null;
+  const qrisImageUrl = donation?.qrisImageUrl || donation?.snapRedirectUrl || null;
   const handleDownloadQris = useCallback(async () => {
-    if (!donation?.snapRedirectUrl) {
+    if (!qrisImageUrl) {
       return;
     }
 
     setIsDownloadingQris(true);
 
     try {
-      const response = await fetch(donation.snapRedirectUrl);
+      const response = await fetch(qrisImageUrl);
       if (!response.ok) {
         throw new Error("Gagal mengunduh QRIS.");
       }
@@ -222,7 +224,7 @@ export function DonationStatusClient({
     } finally {
       setIsDownloadingQris(false);
     }
-  }, [donation]);
+  }, [donation, qrisImageUrl]);
   const showManualTransferPanel =
     donation?.status === "PENDING" && isManualBsiTransfer(donation.paymentType);
   const showQrisPanel = donation?.status === "PENDING" && isQrisPayment(donation.paymentType);
@@ -243,7 +245,7 @@ export function DonationStatusClient({
             <>
               <h2 className="mb-2 text-2xl font-bold text-emerald-950">Memuat status donasi...</h2>
               <p className="mb-6 text-muted-foreground">
-                Sedang mengecek status pembayaran ke Midtrans.
+                Sedang mengecek status pembayaran.
               </p>
             </>
           ) : errorMessage ? (
@@ -313,11 +315,11 @@ export function DonationStatusClient({
                           Pindai QRIS berikut untuk menyelesaikan donasi. Setelah pembayaran
                           berhasil, status akan berubah otomatis atau bisa dicek manual.
                         </p>
-                        {donation.snapRedirectUrl ? (
+                        {qrisImageUrl ? (
                           <div className="mt-4 overflow-hidden rounded-2xl border bg-white p-4">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                              src={donation.snapRedirectUrl}
+                              src={qrisImageUrl}
                               alt="Kode QRIS donasi"
                               className="mx-auto h-auto w-full max-w-[280px]"
                             />
@@ -407,7 +409,7 @@ export function DonationStatusClient({
                             type="button"
                             onClick={handleDownloadQris}
                             disabled={
-                              isDownloadingQris || !showQrisPanel || !donation?.snapRedirectUrl
+                              isDownloadingQris || !showQrisPanel || !qrisImageUrl
                             }
                             className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                           >

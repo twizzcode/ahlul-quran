@@ -15,17 +15,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { DashboardCampaignItem, DashboardCampaignLinkedArticle } from "@/components/dashboard/donations/dashboard-donation-management";
+import type {
+  DashboardCampaignGalleryOption,
+  DashboardCampaignItem,
+  DashboardCampaignLinkedArticle,
+  DashboardCampaignLinkedGallery,
+} from "@/components/dashboard/donations/dashboard-donation-management";
 import { type PendingUploadImage, uploadFileToR2 } from "@/lib/storage/upload-client";
 
 type DashboardCampaignCreateFormProps = {
   variant?: "page" | "dialog";
+  galleryOptions: DashboardCampaignGalleryOption[];
   onCreated?: (campaign: DashboardCampaignItem) => void;
   onCancel?: () => void;
 };
 
 export function DashboardCampaignCreateForm({
   variant = "page",
+  galleryOptions,
   onCreated,
   onCancel,
 }: DashboardCampaignCreateFormProps) {
@@ -36,6 +43,7 @@ export function DashboardCampaignCreateForm({
   const [targetAmount, setTargetAmount] = useState("10000000");
   const [endDate, setEndDate] = useState("");
   const [statusValue, setStatusValue] = useState("true");
+  const [linkedGalleryIds, setLinkedGalleryIds] = useState<string[]>([]);
   const [pendingCoverImage, setPendingCoverImage] = useState<PendingUploadImage | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -108,6 +116,7 @@ export function DashboardCampaignCreateForm({
         targetAmount: number;
         isActive: boolean;
         linkedArticleIds: string[];
+        linkedGalleryIds: string[];
         coverImage?: string;
         endDate?: string;
       } = {
@@ -116,6 +125,7 @@ export function DashboardCampaignCreateForm({
         targetAmount: numericTarget,
         isActive: statusValue === "true",
         linkedArticleIds: [],
+        linkedGalleryIds,
       };
 
       if (resolvedCoverImage) {
@@ -148,6 +158,7 @@ export function DashboardCampaignCreateForm({
         endDate: string | null;
         createdAt: string;
         linkedArticles: DashboardCampaignLinkedArticle[];
+        linkedGalleries: DashboardCampaignLinkedGallery[];
       };
 
       if (pendingCoverImageRef.current?.previewUrl) {
@@ -171,6 +182,7 @@ export function DashboardCampaignCreateForm({
         endDate: created.endDate,
         createdAt: created.createdAt,
         linkedArticles: created.linkedArticles,
+        linkedGalleries: created.linkedGalleries,
       };
 
       if (variant === "dialog") {
@@ -255,6 +267,57 @@ export function DashboardCampaignCreateForm({
                     />
                   </div>
                 </div>
+              </div>
+            </section>
+
+            <section className="rounded-[24px] border bg-card p-5">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Galeri Tertaut
+              </h3>
+              <div className="mt-4">
+                {galleryOptions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Belum ada galeri yang tersedia untuk ditautkan.
+                  </p>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {galleryOptions.map((gallery) => {
+                      const isSelected = linkedGalleryIds.includes(gallery.id);
+
+                      return (
+                        <label
+                          key={gallery.id}
+                          className={
+                            isSelected
+                              ? "flex cursor-pointer items-start gap-3 rounded-2xl border border-emerald-700 bg-emerald-50 p-3"
+                              : "flex cursor-pointer items-start gap-3 rounded-2xl border border-emerald-100 p-3 hover:border-emerald-300"
+                          }
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(event) => {
+                              setLinkedGalleryIds((current) =>
+                                event.target.checked
+                                  ? [...current, gallery.id]
+                                  : current.filter((id) => id !== gallery.id)
+                              );
+                            }}
+                            className="mt-1 rounded border-input"
+                          />
+                          <div className="min-w-0">
+                            <p className="line-clamp-2 text-sm font-semibold text-slate-900">
+                              {gallery.title}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {gallery.imageCount} foto
+                            </p>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </section>
           </form>

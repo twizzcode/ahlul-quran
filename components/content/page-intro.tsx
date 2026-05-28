@@ -32,7 +32,7 @@ export function PageIntro({
   return (
     <section
       className={cn(
-        "relative left-1/2 right-1/2 -mt-4 mb-8 w-screen -translate-x-1/2 overflow-hidden bg-[linear-gradient(180deg,#064e3b_0%,#065f46_100%)] px-4 py-9 sm:mb-10 sm:px-6 sm:py-16",
+        "relative left-1/2 -mt-4 mb-8 w-[100dvw] -translate-x-1/2 overflow-hidden bg-[linear-gradient(180deg,#064e3b_0%,#065f46_100%)] px-4 py-9 sm:mb-10 sm:px-6 sm:py-16",
         className
       )}
     >

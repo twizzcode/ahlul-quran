@@ -15,6 +15,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -22,12 +29,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 
 export type DashboardCampaignLinkedArticle = {
   id: string;
   title: string;
   slug: string;
   publishedAt: string;
+};
+
+export type DashboardCampaignLinkedGallery = {
+  id: string;
+  title: string;
+  createdAt: string;
+  imageCount: number;
+  coverImage: string | null;
+};
+
+export type DashboardCampaignGalleryOption = {
+  id: string;
+  title: string;
+  createdAt: string;
+  imageCount: number;
+  coverImage: string | null;
 };
 
 export type DashboardCampaignItem = {
@@ -44,6 +68,7 @@ export type DashboardCampaignItem = {
   endDate: string | null;
   createdAt: string;
   linkedArticles: DashboardCampaignLinkedArticle[];
+  linkedGalleries: DashboardCampaignLinkedGallery[];
 };
 
 export type DashboardDonationItem = {
@@ -62,6 +87,7 @@ type DashboardDonationManagementProps = {
   mode: "donations" | "campaigns";
   initialCampaigns: DashboardCampaignItem[];
   initialDonations: DashboardDonationItem[];
+  galleryOptions?: DashboardCampaignGalleryOption[];
 };
 
 const statusLabel: Record<string, string> = {
@@ -104,6 +130,7 @@ export function DashboardDonationManagement({
   mode,
   initialCampaigns,
   initialDonations,
+  galleryOptions = [],
 }: DashboardDonationManagementProps) {
   const [campaigns, setCampaigns] = useState(initialCampaigns);
   const [donations, setDonations] = useState(initialDonations);
@@ -117,6 +144,8 @@ export function DashboardDonationManagement({
   const [manualCampaignId, setManualCampaignId] = useState("__general__");
   const [isManualAnonymous, setIsManualAnonymous] = useState(false);
   const [search, setSearch] = useState("");
+  const [showExpiredCampaigns, setShowExpiredCampaigns] = useState(false);
+  const [campaignDateSort, setCampaignDateSort] = useState<"newest" | "oldest">("newest");
   const isDonationMode = mode === "donations";
   const isCampaignMode = mode === "campaigns";
 
@@ -166,6 +195,31 @@ export function DashboardDonationManagement({
       );
     });
   }, [donations, statusFilter, search]);
+
+  const filteredCampaigns = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return campaigns
+      .filter((campaign) => {
+        const isExpired =
+          campaign.endDate !== null && new Date(campaign.endDate).getTime() <= Date.now();
+
+        if (!showExpiredCampaigns && isExpired) {
+          return false;
+        }
+
+        if (!query) {
+          return true;
+        }
+
+        return [campaign.title, campaign.description, campaign.slug].join(" ").toLowerCase().includes(query);
+      })
+      .sort((left, right) => {
+        const leftTime = new Date(left.createdAt).getTime();
+        const rightTime = new Date(right.createdAt).getTime();
+        return campaignDateSort === "newest" ? rightTime - leftTime : leftTime - rightTime;
+      });
+  }, [campaignDateSort, campaigns, search, showExpiredCampaigns]);
 
   async function handleApproveDonation(donation: DashboardDonationItem) {
     const confirmed = window.confirm(
@@ -366,7 +420,7 @@ export function DashboardDonationManagement({
   }
 
   return (
-    <div>
+    <div className="pt-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">
@@ -503,6 +557,7 @@ export function DashboardDonationManagement({
                 <div className="px-6 py-6">
                   <DashboardCampaignCreateForm
                     variant="dialog"
+                    galleryOptions={galleryOptions}
                     onCreated={handleCampaignCreated}
                     onCancel={() => setIsCreateDialogOpen(false)}
                   />
@@ -551,19 +606,85 @@ export function DashboardDonationManagement({
       {isCampaignMode ? (
       <section className="mb-8">
         <h2 className="mb-4 text-lg font-semibold">Daftar Kampanye</h2>
-        {campaigns.length === 0 ? (
-          <div className="rounded-xl border p-6 text-center text-sm text-muted-foreground">
-            Belum ada kampanye.
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Cari judul / deskripsi / slug kampanye..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="flex h-11 w-full rounded-xl border border-input bg-background pl-10 pr-11 text-sm"
+            />
+            {search ? (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
+                aria-label="Hapus pencarian"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="outline" size="icon" className="h-11 w-11 rounded-xl">
+                <SlidersHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="z-[240] min-w-[260px] rounded-2xl border-emerald-100 p-2">
+              <DropdownMenuCheckboxItem
+                indicatorPosition="right"
+                checked={showExpiredCampaigns}
+                onCheckedChange={(checked) => setShowExpiredCampaigns(checked)}
+                className="rounded-xl py-2.5 pr-8 pl-3 text-sm text-emerald-950"
+              >
+                Tampilkan yang expired
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuSeparator className="bg-emerald-100" />
+              <DropdownMenuCheckboxItem
+                indicatorPosition="right"
+                checked={campaignDateSort === "oldest"}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setCampaignDateSort("oldest");
+                  }
+                }}
+                className="rounded-xl py-2.5 pr-8 pl-3 text-sm text-emerald-950"
+              >
+                Dari yang terlama
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                indicatorPosition="right"
+                checked={campaignDateSort === "newest"}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setCampaignDateSort("newest");
+                  }
+                }}
+                className="rounded-xl py-2.5 pr-8 pl-3 text-sm text-emerald-950"
+              >
+                Dari yang terbaru
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {filteredCampaigns.length === 0 ? (
+          <div className="py-6 text-sm text-muted-foreground">
+            {search.trim() ? "Kampanye tidak ditemukan." : showExpiredCampaigns ? "Belum ada kampanye." : "Belum ada kampanye yang masih aktif."}
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {campaigns.map((campaign) => (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+            {filteredCampaigns.map((campaign) => (
               <article
                 key={campaign.id}
                 className="group overflow-hidden rounded-[22px] border border-emerald-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
               >
-                <div className="flex h-full flex-col md:grid md:grid-cols-[minmax(0,220px)_minmax(0,1fr)] md:items-start md:gap-4 md:p-4">
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-t-[22px] bg-muted md:rounded-[14px]">
+                <div className="flex h-full flex-col">
+                  <div className="relative aspect-[4/3] overflow-hidden bg-muted">
                     {campaign.coverImage ? (
                       <Image
                         src={campaign.coverImage}
@@ -592,9 +713,9 @@ export function DashboardDonationManagement({
                     </div>
                   </div>
 
-                  <div className="min-w-0 p-4 pt-3 md:p-0">
+                  <div className="min-w-0 p-4 pt-3">
                     <div className="mb-3 flex items-start justify-between gap-3">
-                      <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-bold leading-tight text-slate-900 capitalize md:min-h-[3.5rem] md:text-lg">
+                      <h3 className="line-clamp-2 min-h-[3.5rem] text-base font-bold leading-tight text-slate-900 capitalize">
                         {campaign.title}
                       </h3>
                       <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">
@@ -603,10 +724,10 @@ export function DashboardDonationManagement({
                     </div>
 
                     <div className="mt-4 flex items-end gap-2">
-                      <p className="text-sm font-bold tracking-tight text-slate-900 md:text-[1.1rem]">
+                      <p className="text-base font-bold tracking-tight text-slate-900">
                         {formatCurrency(campaign.collectedAmount)}
                       </p>
-                      <p className="pb-0.5 text-[10px] text-slate-500 md:text-xs">
+                      <p className="pb-0.5 text-[10px] text-slate-500">
                         dari {formatCurrency(campaign.targetAmount)}
                       </p>
                     </div>

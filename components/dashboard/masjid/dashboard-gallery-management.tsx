@@ -1,11 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, type FormEvent } from "react";
-import { PencilLine, Plus } from "lucide-react";
+import { useDeferredValue, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { ImagePlus, LoaderCircle, PencilLine, Plus, Search, X } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import { useDashboard } from "@/components/dashboard/dashboard-provider";
-import { R2ImageUploadField } from "@/components/shared/r2-image-upload-field";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,6 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DatePickerField } from "@/components/ui/date-picker-field";
+import { Input } from "@/components/ui/input";
+import { uploadFileToR2 } from "@/lib/storage/upload-client";
 import { formatDateTime } from "@/lib/utils";
 
 export type DashboardGalleryImageItem = {
@@ -29,7 +30,6 @@ export type DashboardGalleryItem = {
   description: string | null;
   createdAt: string;
   updatedAt: string;
-  authorName: string;
   imageCount: number;
   images: DashboardGalleryImageItem[];
 };
@@ -40,6 +40,45 @@ type DashboardGalleryManagementProps = {
 
 type GalleryDialogMode = "create" | "edit";
 
+type EditableGalleryImage = {
+  url: string;
+  caption: string;
+};
+
+const MAX_GALLERY_IMAGES = 10;
+
+function getTodayDateValue() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getGalleryDateValue(gallery?: DashboardGalleryItem) {
+  return gallery?.createdAt ? gallery.createdAt.slice(0, 10) : getTodayDateValue();
+}
+
+function sortGalleriesByCreatedAt(items: DashboardGalleryItem[]) {
+  return [...items].sort(
+    (first, second) =>
+      new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime()
+  );
+}
+
+function createEmptyImage(): EditableGalleryImage {
+  return {
+    url: "",
+    caption: "",
+  };
+}
+
+function mapGalleryImages(gallery?: DashboardGalleryItem) {
+  const savedImages =
+    gallery?.images.map((image) => ({
+      url: image.url,
+      caption: image.caption || "",
+    })) ?? [];
+
+  return savedImages.length > 0 ? savedImages : [createEmptyImage()];
+}
+
 function GalleryFormDialog(props: {
   mode: GalleryDialogMode;
   gallery?: DashboardGalleryItem;
@@ -49,15 +88,16 @@ function GalleryFormDialog(props: {
   onUpdated: (gallery: DashboardGalleryItem) => void;
   onDeleted: (galleryId: string) => void;
 }) {
-  const { user } = useDashboard();
   const { mode, gallery, open, onOpenChange, onCreated, onUpdated, onDeleted } = props;
   const [title, setTitle] = useState(gallery?.title || "");
   const [description, setDescription] = useState(gallery?.description || "");
-  const [imageUrl, setImageUrl] = useState(gallery?.images[0]?.url || "");
-  const [imageCaption, setImageCaption] = useState(gallery?.images[0]?.caption || "");
+  const [galleryDate, setGalleryDate] = useState(getGalleryDateValue(gallery));
+  const [images, setImages] = useState<EditableGalleryImage[]>(mapGalleryImages(gallery));
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -66,12 +106,78 @@ function GalleryFormDialog(props: {
 
     setTitle(gallery?.title || "");
     setDescription(gallery?.description || "");
-    setImageUrl(gallery?.images[0]?.url || "");
-    setImageCaption(gallery?.images[0]?.caption || "");
+    setGalleryDate(getGalleryDateValue(gallery));
+    setImages(mapGalleryImages(gallery));
     setErrorMessage("");
     setIsSubmitting(false);
     setIsDeleting(false);
+    setIsUploadingImages(false);
   }, [gallery, open]);
+
+  function removeImageSlot(index: number) {
+    setImages((current) => {
+      const nextImages = current.filter((_, currentIndex) => currentIndex !== index);
+
+      if (nextImages.length === 0) {
+        return [createEmptyImage()];
+      }
+
+      return nextImages;
+    });
+  }
+
+  async function handleImagePickerChange(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    const existingFilledImageCount = images.filter((image) => image.url.trim()).length;
+    const availableSlots = MAX_GALLERY_IMAGES - existingFilledImageCount;
+
+    if (files.length === 0) {
+      return;
+    }
+
+    if (availableSlots <= 0) {
+      setErrorMessage(`Maksimal ${MAX_GALLERY_IMAGES} foto per galeri.`);
+      event.target.value = "";
+      return;
+    }
+
+    const acceptedFiles = files.slice(0, availableSlots);
+    const invalidFile = acceptedFiles.find((file) => !file.type.startsWith("image/"));
+
+    if (invalidFile) {
+      setErrorMessage("Semua file harus berupa gambar.");
+      event.target.value = "";
+      return;
+    }
+
+    setErrorMessage("");
+    setIsUploadingImages(true);
+
+    try {
+      const uploadedUrls = await Promise.all(
+        acceptedFiles.map((file) => uploadFileToR2(file, "galleries/images"))
+      );
+
+      setImages((current) => {
+        const nextImages = current.filter((image) => image.url.trim().length > 0);
+        uploadedUrls.forEach((url) => {
+          if (nextImages.length < MAX_GALLERY_IMAGES) {
+            nextImages.push({
+              url,
+              caption: "",
+            });
+          }
+        });
+
+        return nextImages.length > 0 ? nextImages : [createEmptyImage()];
+      });
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Gagal mengupload gambar.");
+    } finally {
+      setIsUploadingImages(false);
+      event.target.value = "";
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -84,8 +190,22 @@ function GalleryFormDialog(props: {
       return;
     }
 
-    if (!imageUrl.trim()) {
-      setErrorMessage("Tambahkan 1 foto untuk item galeri ini.");
+    const filledImages = images
+      .map((image) => ({
+        url: image.url.trim(),
+        caption: image.caption.trim(),
+      }))
+      .filter((image) => image.url.length > 0)
+      .slice(0, MAX_GALLERY_IMAGES);
+
+    if (filledImages.length === 0) {
+      setErrorMessage("Tambahkan minimal 1 foto untuk galeri ini.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!galleryDate) {
+      setErrorMessage("Tanggal galeri wajib diisi.");
       setIsSubmitting(false);
       return;
     }
@@ -101,13 +221,11 @@ function GalleryFormDialog(props: {
           body: JSON.stringify({
             title: title.trim(),
             description: description.trim(),
-            images: [
-              {
-                url: imageUrl.trim(),
-                caption: imageCaption.trim() || undefined,
-              },
-            ],
-            authorId: user.id,
+            createdAt: galleryDate,
+            images: filledImages.map((image) => ({
+              url: image.url,
+              caption: image.caption || undefined,
+            })),
           }),
         }
       );
@@ -123,7 +241,6 @@ function GalleryFormDialog(props: {
         description: string | null;
         createdAt: string;
         updatedAt: string;
-        author: { name: string };
         _count: { images: number };
         images: DashboardGalleryImageItem[];
       };
@@ -134,7 +251,6 @@ function GalleryFormDialog(props: {
         description: saved.description,
         createdAt: saved.createdAt,
         updatedAt: saved.updatedAt,
-        authorName: saved.author.name,
         imageCount: saved._count.images,
         images: saved.images,
       };
@@ -188,37 +304,106 @@ function GalleryFormDialog(props: {
     }
   }
 
+  const filledImageCount = images.filter((image) => image.url.trim().length > 0).length;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 sm:max-w-4xl">
-        <DialogHeader className="border-b px-5 py-4">
+      <DialogContent className="scrollbar-hidden max-h-[90vh] overflow-y-auto p-0 sm:max-w-6xl">
+        <DialogHeader className="border-b px-6 py-6">
           <DialogTitle>
-            {mode === "create" ? "Tambah Foto Galeri" : "Edit Foto Galeri"}
+            {mode === "create" ? "Tambah Galeri" : "Edit Galeri"}
           </DialogTitle>
           <DialogDescription>
-            Satu item galeri hanya berisi satu foto beserta judul, deskripsi, dan caption.
+            Setiap galeri bisa berisi maksimal 10 foto lengkap dengan judul, deskripsi, dan caption.
           </DialogDescription>
         </DialogHeader>
 
         <form
-          className="grid items-stretch gap-5 px-5 py-5 xl:grid-cols-[300px_minmax(0,1fr)]"
+          className="grid items-start gap-6 px-6 py-6 xl:grid-cols-[minmax(0,1.2fr)_360px]"
           onSubmit={handleSubmit}
         >
           <div className="space-y-4">
-            <section className="rounded-2xl border bg-card p-4 shadow-sm">
-              <div className="mb-3 space-y-1">
-                <h2 className="text-base font-semibold">Foto Galeri</h2>
-                <p className="text-xs text-muted-foreground">
-                  Upload satu foto utama untuk item galeri ini.
-                </p>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleImagePickerChange}
+            />
+
+            <section className="rounded-[24px] border bg-card p-5 shadow-sm">
+              <div className="mb-5 flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <h2 className="text-base font-semibold">Foto Galeri</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Upload banyak foto sekaligus, maksimal 10 gambar per galeri.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={isUploadingImages || filledImageCount >= MAX_GALLERY_IMAGES}
+                >
+                  {isUploadingImages ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                  Upload Foto
+                </Button>
               </div>
-              <R2ImageUploadField
-                label=""
-                value={imageUrl}
-                folder="galleries/images"
-                onChange={setImageUrl}
-                onError={setErrorMessage}
-              />
+
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+                {images
+                  .filter((image) => image.url.trim().length > 0)
+                  .map((image, index) => (
+                    <div
+                      key={`${gallery?.id || "new"}-${index}-${image.url}`}
+                      className="group relative aspect-square overflow-hidden rounded-2xl border border-emerald-100 bg-emerald-50 text-left transition hover:border-emerald-300"
+                    >
+                      <Image
+                        src={image.url}
+                        alt={image.caption || `Foto galeri ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-2 pb-2 pt-6 text-[11px] font-medium text-white">
+                        Foto {index + 1}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          removeImageSlot(index);
+                        }}
+                        className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white opacity-100 backdrop-blur transition hover:bg-black/70"
+                        aria-label={`Hapus foto ${index + 1}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+
+                {filledImageCount < MAX_GALLERY_IMAGES ? (
+                  <button
+                    type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    className="flex aspect-square flex-col items-center justify-center rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/50 p-3 text-center transition hover:border-emerald-400 hover:bg-emerald-50"
+                  >
+                    {isUploadingImages ? (
+                      <LoaderCircle className="h-5 w-5 animate-spin text-emerald-700" />
+                    ) : (
+                      <ImagePlus className="h-5 w-5 text-emerald-700" />
+                    )}
+                    <span className="mt-2 text-xs font-medium text-emerald-800">
+                      Tambah Foto
+                    </span>
+                  </button>
+                ) : null}
+              </div>
             </section>
 
             {errorMessage ? (
@@ -261,12 +446,12 @@ function GalleryFormDialog(props: {
             </div>
           </div>
 
-          <div>
-            <section className="rounded-2xl border bg-card p-4 shadow-sm xl:h-full">
-              <div className="mb-3 space-y-1">
+          <div className="space-y-4 xl:sticky xl:top-6">
+            <section className="rounded-[24px] border bg-card p-5 shadow-sm">
+              <div className="mb-5 space-y-1">
                 <h2 className="text-base font-semibold">Informasi Galeri</h2>
                 <p className="text-xs text-muted-foreground">
-                  Lengkapi informasi yang akan tampil di halaman galeri publik.
+                  Informasi ini akan tampil di halaman galeri publik. Foto pertama otomatis menjadi cover thumbnail galeri.
                 </p>
               </div>
 
@@ -283,23 +468,18 @@ function GalleryFormDialog(props: {
                 </div>
 
                 <div>
+                  <label className="mb-2 block text-sm font-medium">Tanggal</label>
+                  <DatePickerField value={galleryDate} onChange={setGalleryDate} />
+                </div>
+
+                <div>
                   <label className="mb-2 block text-sm font-medium">Deskripsi</label>
                   <textarea
                     value={description}
                     onChange={(event) => setDescription(event.target.value)}
-                    rows={4}
-                    className="flex min-h-28 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm"
-                    placeholder="Jelaskan momen atau kegiatan pada foto ini..."
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Caption Foto</label>
-                  <input
-                    value={imageCaption}
-                    onChange={(event) => setImageCaption(event.target.value)}
-                    className="flex h-11 w-full rounded-xl border border-input bg-background px-4 text-sm"
-                    placeholder="Keterangan singkat foto"
+                    rows={5}
+                    className="flex min-h-32 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm"
+                    placeholder="Jelaskan momen atau kegiatan pada galeri ini..."
                   />
                 </div>
               </div>
@@ -314,17 +494,37 @@ function GalleryFormDialog(props: {
 export function DashboardGalleryManagement({
   initialGalleries,
 }: DashboardGalleryManagementProps) {
-  const [galleries, setGalleries] = useState(initialGalleries);
+  const [galleries, setGalleries] = useState(() => sortGalleriesByCreatedAt(initialGalleries));
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingGallery, setEditingGallery] = useState<DashboardGalleryItem | null>(null);
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+  const normalizedQuery = deferredQuery.trim().toLowerCase();
+
+  const filteredGalleries = normalizedQuery
+    ? galleries.filter((gallery) => {
+        const searchableText = [
+          gallery.title,
+          gallery.description,
+          ...gallery.images.map((image) => image.caption),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(normalizedQuery);
+      })
+    : galleries;
 
   function handleCreated(gallery: DashboardGalleryItem) {
-    setGalleries((current) => [gallery, ...current]);
+    setGalleries((current) => sortGalleriesByCreatedAt([gallery, ...current]));
   }
 
   function handleUpdated(gallery: DashboardGalleryItem) {
     setGalleries((current) =>
-      current.map((item) => (item.id === gallery.id ? gallery : item))
+      sortGalleriesByCreatedAt(
+        current.map((item) => (item.id === gallery.id ? gallery : item))
+      )
     );
   }
 
@@ -333,18 +533,45 @@ export function DashboardGalleryManagement({
   }
 
   return (
-    <div>
+    <div className="space-y-6 pt-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Galeri Foto</h1>
           <p className="text-sm text-muted-foreground">
-            Kelola foto-foto dokumentasi masjid yang tampil di halaman galeri publik.
+            Kelola dokumentasi masjid. Setiap galeri bisa memuat sampai 10 foto.
           </p>
         </div>
         <Button onClick={() => setIsCreateOpen(true)}>
           <Plus className="h-4 w-4" />
-          Tambah Foto
+          Tambah Galeri
         </Button>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          Menampilkan {filteredGalleries.length} dari {galleries.length} galeri.
+        </p>
+
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Cari galeri..."
+            className="h-11 rounded-xl pl-10 pr-11"
+          />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
+              aria-label="Hapus pencarian"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <GalleryFormDialog
@@ -356,16 +583,20 @@ export function DashboardGalleryManagement({
         onDeleted={handleDeleted}
       />
 
-      {galleries.length === 0 ? (
+      {filteredGalleries.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-10 text-center">
-          <p className="text-base font-medium">Belum ada foto galeri.</p>
+          <p className="text-base font-medium">
+            {normalizedQuery ? "Galeri tidak ditemukan." : "Belum ada galeri."}
+          </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Tambahkan foto dokumentasi pertama dari panel admin.
+            {normalizedQuery
+              ? "Coba gunakan kata kunci lain untuk menemukan galeri yang dicari."
+              : "Tambahkan galeri dokumentasi pertama dari panel admin."}
           </p>
         </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-5">
-          {galleries.map((gallery) => {
+          {filteredGalleries.map((gallery) => {
             const image = gallery.images[0];
 
             return (
@@ -396,25 +627,13 @@ export function DashboardGalleryManagement({
                     <p className="line-clamp-2 text-xs text-muted-foreground">
                       {gallery.description?.trim() || "Tanpa deskripsi."}
                     </p>
-                    {image?.caption ? (
-                      <p className="line-clamp-2 text-xs text-muted-foreground">
-                        {image.caption}
+                    <div className="flex items-center justify-between gap-3 text-[11px]">
+                      <p className="text-muted-foreground">
+                        {formatDateTime(gallery.createdAt)}
                       </p>
-                    ) : null}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 rounded-lg border bg-muted/20 p-2 text-[11px]">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                        Editor
+                      <p className="font-medium text-emerald-800/80">
+                        {gallery.imageCount} foto
                       </p>
-                      <p className="mt-1 line-clamp-1 font-semibold">{gallery.authorName}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                        Update
-                      </p>
-                      <p className="mt-1 line-clamp-2 font-semibold">{formatDateTime(gallery.updatedAt)}</p>
                     </div>
                   </div>
 
@@ -425,7 +644,7 @@ export function DashboardGalleryManagement({
                     onClick={() => setEditingGallery(gallery)}
                   >
                     <PencilLine className="h-4 w-4" />
-                    Edit Foto
+                    Edit Galeri
                   </Button>
                 </div>
               </article>

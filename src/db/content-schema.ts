@@ -198,10 +198,7 @@ export const donation = pgTable(
     message: text("message"),
     isAnonymous: boolean("is_anonymous").default(false).notNull(),
     status: donationStatus("status").default("PENDING").notNull(),
-    midtransId: text("midtrans_id").unique(),
     paymentType: text("payment_type"),
-    snapToken: text("snap_token"),
-    snapRedirectUrl: text("snap_redirect_url"),
     paidAt: timestamp("paid_at"),
     userId: text("user_id").references(() => user.id),
     campaignId: text("campaign_id").references(() => donationCampaign.id),
@@ -221,6 +218,10 @@ export const gallery = pgTable("gallery", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
+  donationCampaignId: text("donation_campaign_id").references(
+    () => donationCampaign.id,
+    { onDelete: "set null" },
+  ),
   authorId: text("author_id")
     .notNull()
     .references(() => user.id),
@@ -290,11 +291,16 @@ export const donationCampaignRelations = relations(
   ({ many }) => ({
     donations: many(donation),
     updates: many(article),
+    galleries: many(gallery),
   }),
 );
 
 export const galleryRelations = relations(gallery, ({ one, many }) => ({
   author: one(user, { fields: [gallery.authorId], references: [user.id] }),
+  campaign: one(donationCampaign, {
+    fields: [gallery.donationCampaignId],
+    references: [donationCampaign.id],
+  }),
   images: many(galleryImage),
 }));
 

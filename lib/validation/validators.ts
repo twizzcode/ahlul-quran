@@ -46,7 +46,7 @@ export const createDonationSchema = z.object({
   message: z.string().optional(),
   isAnonymous: z.boolean().default(false),
   campaignId: z.string().optional(),
-  paymentMethod: z.enum(["QRIS", "BSI_TRANSFER"]).default("QRIS"),
+  paymentMethod: z.enum(["BSI_TRANSFER"]).default("BSI_TRANSFER"),
 });
 
 export const createManualDonationSchema = z.object({
@@ -80,6 +80,7 @@ export const createCampaignSchema = z.object({
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
   linkedArticleIds: z.array(z.string().min(1)).max(20).optional(),
+  linkedGalleryIds: z.array(z.string().min(1)).max(20).optional(),
 });
 
 export const updateCampaignSchema = createCampaignSchema.partial();
@@ -91,6 +92,7 @@ export const updateCampaignSchema = createCampaignSchema.partial();
 export const createGallerySchema = z.object({
   title: z.string().min(3, "Judul minimal 3 karakter"),
   description: z.string().optional(),
+  createdAt: z.string().date("Tanggal galeri tidak valid").optional(),
   images: z
     .array(
       z.object({
@@ -99,7 +101,7 @@ export const createGallerySchema = z.object({
       })
     )
     .min(1, "Minimal 1 gambar")
-    .max(1, "Galeri hanya mendukung 1 gambar per item"),
+    .max(10, "Maksimal 10 gambar per galeri"),
 });
 
 export const updateGallerySchema = createGallerySchema.partial();

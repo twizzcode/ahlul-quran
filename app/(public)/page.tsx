@@ -366,7 +366,7 @@ export default async function HomePage() {
       </section>
 
       {/* ─── Program Donasi ─── */}
-      <section className="pb-28 pt-24 sm:pb-32 sm:pt-32">
+      <section className="pb-16 pt-24 sm:pb-20 sm:pt-32">
         <div className="mx-auto w-full max-w-7xl px-6">
           <div className="mb-8 flex items-end justify-between gap-6">
             <div>
@@ -390,7 +390,7 @@ export default async function HomePage() {
           </div>
 
           {donationCampaigns.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-2 lg:gap-5">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 xl:gap-5">
               {donationCampaigns.map((campaign) => {
                 const visibleSupporters = campaign.supporters.slice(0, 5);
                 const extraSupporters = Math.max(
@@ -404,27 +404,26 @@ export default async function HomePage() {
                     className="group overflow-hidden rounded-[22px] border border-emerald-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
                   >
                     <Link href={`/donasi/${campaign.slug}`} className="block">
-                      <div className="flex h-full flex-col md:grid md:grid-cols-[minmax(0,220px)_minmax(0,1fr)] md:items-start md:gap-4 md:p-4">
-                        <div className="relative aspect-[4/3] overflow-hidden rounded-t-[22px] md:rounded-[14px]">
+                      <div className="flex h-full flex-col">
+                        <div className="relative aspect-[4/3] overflow-hidden">
                           <Image
                             src={campaign.coverImage || "/Gambar-masjid.png"}
                             alt={campaign.title}
                             fill
                             className="object-cover transition-transform duration-300 group-hover:scale-105"
                           />
-                          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(15,23,42,0.74)_0%,rgba(15,23,42,0.22)_70%,rgba(15,23,42,0.04)_100%)]" />
                         </div>
 
-                        <div className="min-w-0 p-4 pt-3 md:p-0">
-                          <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-bold leading-tight text-slate-900 capitalize md:min-h-[3.5rem] md:text-lg">
+                        <div className="min-w-0 p-4 pt-3">
+                          <h3 className="line-clamp-2 min-h-[3.5rem] text-base font-bold leading-tight text-slate-900 capitalize">
                             {truncateText(campaign.title, 42)}
                           </h3>
 
                           <div className="mt-3 flex items-end gap-2">
-                            <p className="text-sm font-bold tracking-tight text-slate-900 md:text-[1.1rem]">
+                            <p className="text-base font-bold tracking-tight text-slate-900">
                               {formatCurrency(campaign.collectedAmount)}
                             </p>
-                            <p className="pb-0.5 text-[10px] text-slate-500 md:text-xs">terkumpul</p>
+                            <p className="pb-0.5 text-[10px] text-slate-500">terkumpul</p>
                           </div>
 
                           <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-200">
@@ -445,13 +444,13 @@ export default async function HomePage() {
                                           <div>
                                             <Avatar
                                               size="sm"
-                                              className="size-4 ring-1 ring-white transition-transform hover:z-10 hover:scale-110"
+                                              className="size-5 ring-1 ring-white transition-transform hover:z-10 hover:scale-110"
                                             >
                                               <AvatarImage
                                                 src={buildAvatarDataUri(supporter.name, index)}
                                                 alt={supporter.name}
                                               />
-                                              <AvatarFallback className="bg-slate-700 text-[7px] font-semibold text-white">
+                                              <AvatarFallback className="bg-slate-700 text-[8px] font-semibold text-white">
                                                 {getInitials(supporter.name)}
                                               </AvatarFallback>
                                             </Avatar>
@@ -467,7 +466,7 @@ export default async function HomePage() {
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <div>
-                                            <AvatarGroupCount className="size-4 bg-slate-500 text-[6px] font-semibold text-white ring-1 ring-white">
+                                            <AvatarGroupCount className="size-5 bg-slate-500 text-[7px] font-semibold text-white ring-1 ring-white">
                                               +{extraSupporters}
                                             </AvatarGroupCount>
                                           </div>
@@ -480,8 +479,8 @@ export default async function HomePage() {
                                   </AvatarGroup>
                                 </TooltipProvider>
                               ) : (
-                                <Avatar size="sm" className="size-4 ring-1 ring-white">
-                                  <AvatarFallback className="bg-slate-700 text-[7px] font-semibold text-white">
+                                <Avatar size="sm" className="size-5 ring-1 ring-white">
+                                  <AvatarFallback className="bg-slate-700 text-[8px] font-semibold text-white">
                                     HA
                                   </AvatarFallback>
                                 </Avatar>

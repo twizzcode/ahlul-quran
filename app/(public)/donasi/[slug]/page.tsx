@@ -4,18 +4,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  BadgeCheck,
-  Building2,
   CalendarDays,
+  ChevronDown,
   Users,
 } from "lucide-react";
+import { LinkedGalleryViewer } from "@/components/content/linked-gallery-viewer";
 import { Button } from "@/components/ui/button";
 import {
   getDonationCampaignUpdateHref,
   isDonationCampaignUpdateSchemaMismatchError,
 } from "@/lib/donation/donation-campaign-updates";
 import { MobileDonationStickyBar } from "@/components/donation/mobile-donation-sticky-bar";
-import { getMasjidProfileData } from "@/lib/masjid/masjid-profile.server";
+import { Separator } from "@/components/ui/separator";
 import dbQuery from "@/lib/data/db-query";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -66,6 +66,18 @@ type DonationCampaignDetailResult = {
       name: string;
       slug: string;
     } | null;
+  }>;
+  galleries?: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    createdAt: Date;
+    images: Array<{
+      id: string;
+      url: string;
+      caption: string | null;
+      order: number;
+    }>;
   }>;
 } | null;
 
@@ -163,8 +175,6 @@ export default async function DonationCampaignDetailPage({
     });
   }
 
-  const profile = await getMasjidProfileData();
-
   if (!campaign) {
     notFound();
   }
@@ -180,6 +190,17 @@ export default async function DonationCampaignDetailPage({
   const descriptionLead = descriptionParts[0] ?? campaign.description;
   const descriptionRest = descriptionParts.slice(1);
   const updates = campaign.updates ?? [];
+  const linkedGalleries = (campaign.galleries ?? []).map((gallery) => ({
+    id: gallery.id,
+    title: gallery.title,
+    description: gallery.description,
+    createdAt: gallery.createdAt.toISOString(),
+    images: gallery.images.map((image) => ({
+      id: image.id,
+      url: image.url,
+      caption: image.caption,
+    })),
+  }));
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 pb-32 pt-[calc(var(--home-nav-height)+1rem)] md:px-0 lg:pb-14">
@@ -244,27 +265,24 @@ export default async function DonationCampaignDetailPage({
             </div>
 
             <section className="mt-6 border-t border-emerald-100 pt-5">
-              <h2 className="text-lg font-semibold text-emerald-950">Penyelenggara</h2>
-              <div className="mt-4 flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-900 text-white">
-                  <Building2 className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-base font-semibold text-emerald-950">{profile.name}</p>
-                  <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
-                    <BadgeCheck className="h-4 w-4 text-emerald-600" />
-                    <span>Verified Organization</span>
-                  </div>
-                </div>
-              </div>
+              <Button
+                size="lg"
+                className="w-full rounded-2xl bg-emerald-900 py-6 text-base hover:bg-emerald-800"
+                asChild
+              >
+                <Link href={`/donasi/${campaign.slug}/bayar`}>Donasi Sekarang</Link>
+              </Button>
             </section>
           </section>
 
-          <details className="mt-7 rounded-[26px] border border-emerald-100 bg-white p-5" open>
+          <details className="group mt-7 border-t border-emerald-100 py-5" open>
             <summary className="cursor-pointer list-none text-2xl font-semibold text-emerald-950 [&::-webkit-details-marker]:hidden">
               <div className="flex items-center justify-between gap-4">
                 <span>Deskripsi Program</span>
-                <span className="text-sm font-medium text-emerald-700">Lihat</span>
+                <span className="flex items-center gap-2 text-sm font-medium text-emerald-700">
+                  <span>Lihat</span>
+                  <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
+                </span>
               </div>
             </summary>
             <div className="mt-4 space-y-4 text-base leading-8 text-slate-700">
@@ -279,12 +297,13 @@ export default async function DonationCampaignDetailPage({
             </div>
           </details>
 
-          <details className="mt-6 rounded-[26px] border border-emerald-100 bg-white p-5">
+          <details className="group mt-2 border-t border-emerald-100 py-5">
             <summary className="cursor-pointer list-none text-2xl font-semibold text-emerald-950 [&::-webkit-details-marker]:hidden">
               <div className="flex items-center justify-between gap-4">
                 <span>Update Terbaru</span>
-                <span className="text-sm font-medium text-emerald-700">
-                  {updates.length === 0 ? "Kosong" : "Lihat"}
+                <span className="flex items-center gap-2 text-sm font-medium text-emerald-700">
+                  <span>Lihat</span>
+                  <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
                 </span>
               </div>
             </summary>
@@ -305,10 +324,10 @@ export default async function DonationCampaignDetailPage({
                         Tanggal, {formatDate(publishedAt)}
                       </p>
 
-                      <div className="mt-3 rounded-[26px] bg-slate-50 p-4 sm:p-5">
+                      <div className="mt-3">
                         <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-5">
                           {article.coverImage ? (
-                            <div className="relative w-full shrink-0 aspect-[4/3] overflow-hidden rounded-2xl bg-slate-200 md:w-[320px]">
+                            <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-2xl bg-slate-200 md:w-[320px]">
                               <Image
                                 src={article.coverImage}
                                 alt={article.title}
@@ -345,12 +364,13 @@ export default async function DonationCampaignDetailPage({
             )}
           </details>
 
-          <details id="donatur" className="mt-6 rounded-[26px] border border-emerald-100 bg-white p-5">
+          <details id="donatur" className="group mt-2 border-t border-emerald-100 py-5">
             <summary className="cursor-pointer list-none text-2xl font-semibold text-emerald-950 [&::-webkit-details-marker]:hidden">
               <div className="flex items-center justify-between gap-4">
                 <span>Donatur</span>
-                <span className="text-sm font-medium text-emerald-700">
-                  {campaign.donations.length === 0 ? "Kosong" : "Lihat"}
+                <span className="flex items-center gap-2 text-sm font-medium text-emerald-700">
+                  <span>Lihat</span>
+                  <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
                 </span>
               </div>
             </summary>
@@ -359,31 +379,33 @@ export default async function DonationCampaignDetailPage({
                 Belum ada donasi tercatat untuk kampanye ini.
               </div>
             ) : (
-              <div className="mt-4 space-y-3">
+              <div className="mt-4">
                 {campaign.donations.map((donation) => (
-                  <div
-                    key={donation.id}
-                    className="flex items-center justify-between rounded-2xl border border-slate-100 px-4 py-4"
-                  >
-                    <div>
-                      <p className="font-semibold text-emerald-950">
-                        {donation.isAnonymous ? "Hamba Allah" : donation.donorName}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {formatDate(donation.createdAt)}
+                  <div key={donation.id}>
+                    <div className="flex items-center justify-between py-4">
+                      <div>
+                        <p className="font-semibold text-emerald-950">
+                          {donation.isAnonymous ? "Hamba Allah" : donation.donorName}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {formatDate(donation.createdAt)}
+                        </p>
+                      </div>
+                      <p className="font-semibold text-emerald-700">
+                        {formatCurrency(donation.amount)}
                       </p>
                     </div>
-                    <p className="font-semibold text-emerald-700">
-                      {formatCurrency(donation.amount)}
-                    </p>
+                    <Separator className="bg-emerald-100 last:hidden" />
                   </div>
                 ))}
               </div>
             )}
           </details>
+
+          <LinkedGalleryViewer galleries={linkedGalleries} />
         </div>
 
-        <aside className="hidden lg:sticky lg:top-[calc(var(--home-nav-height)+1.5rem)] lg:block lg:border-l lg:border-emerald-100 lg:pl-8">
+        <aside className="hidden lg:sticky lg:top-[calc(var(--home-nav-height)+3rem)] lg:block lg:border-l lg:border-emerald-100 lg:pl-8">
           <section className="sm:py-2">
             <h1 className="text-3xl font-bold leading-tight tracking-tight capitalize text-emerald-950">
               {campaign.title}
@@ -432,22 +454,6 @@ export default async function DonationCampaignDetailPage({
               >
                 <Link href={`/donasi/${campaign.slug}/bayar`}>Donasi Sekarang</Link>
               </Button>
-            </div>
-          </section>
-
-          <section className="mt-8 border-t border-emerald-100 pt-8">
-            <h2 className="text-2xl font-semibold text-emerald-950">Penggalang Dana</h2>
-            <div className="mt-5 flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-900 text-white">
-                <Building2 className="h-7 w-7" />
-              </div>
-              <div>
-                <p className="text-xl font-semibold text-emerald-950">{profile.name}</p>
-                <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
-                  <BadgeCheck className="h-4 w-4 text-emerald-600" />
-                  <span>Verified Organization</span>
-                </div>
-              </div>
             </div>
           </section>
         </aside>

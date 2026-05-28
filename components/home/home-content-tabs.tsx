@@ -19,46 +19,9 @@ type HomeContentTabsProps = {
 };
 
 const MAX_ITEMS = 3;
-const PLACEHOLDER_LINE_VARIANTS = [
-  ["w-24", "w-full", "w-4/5", "w-20"],
-  ["w-20", "w-11/12", "w-3/5", "w-24"],
-  ["w-28", "w-5/6", "w-2/3", "w-16"],
-] as const;
-
-function PlaceholderCard({
-  eyebrowWidth,
-  titleWidth,
-  subtitleWidth,
-  metaWidth,
-}: {
-  eyebrowWidth?: string;
-  titleWidth: string;
-  subtitleWidth: string;
-  metaWidth: string;
-}) {
-  return (
-    <div
-      aria-hidden="true"
-      className="hidden overflow-hidden rounded-xl bg-emerald-50/35 xl:block"
-    >
-      <div className="aspect-[4/3] bg-[linear-gradient(135deg,rgba(255,255,255,0.7)_0%,rgba(209,250,229,0.8)_100%)]" />
-      <div className="space-y-3 p-5">
-        {eyebrowWidth ? (
-          <div className={`h-5 ${eyebrowWidth} rounded-full bg-emerald-100/90`} />
-        ) : null}
-        <div className={`h-5 ${titleWidth} rounded-full bg-emerald-100/90`} />
-        <div className={`h-5 ${subtitleWidth} rounded-full bg-emerald-100/80`} />
-        <div className={eyebrowWidth ? "pt-3" : "pt-2"}>
-          <div className={`h-3 ${metaWidth} rounded-full bg-emerald-100/75`} />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function HomeContentTabs({ items }: HomeContentTabsProps) {
   const activeItems = items.slice(0, MAX_ITEMS);
-  const placeholderCount = Math.max(0, MAX_ITEMS - activeItems.length);
 
   return (
     <section className="py-28 sm:py-32">
@@ -84,91 +47,48 @@ export function HomeContentTabs({ items }: HomeContentTabsProps) {
 
         <div className="space-y-4 xl:grid xl:grid-cols-3 xl:gap-6 xl:space-y-0">
           {activeItems.length === 0 ? (
-            <>
-              <div className="col-span-full rounded-2xl bg-emerald-50/45 p-8 text-center text-emerald-900/65">
-                Belum ada berita atau artikel yang dipublikasikan.
-              </div>
-
-              {Array.from({ length: MAX_ITEMS - 1 }, (_, index) => (
-                <PlaceholderCard
-                  key={`empty-${index}`}
-                  eyebrowWidth={
-                    PLACEHOLDER_LINE_VARIANTS[index % PLACEHOLDER_LINE_VARIANTS.length][0]
-                  }
-                  titleWidth={
-                    PLACEHOLDER_LINE_VARIANTS[index % PLACEHOLDER_LINE_VARIANTS.length][1]
-                  }
-                  subtitleWidth={
-                    PLACEHOLDER_LINE_VARIANTS[index % PLACEHOLDER_LINE_VARIANTS.length][2]
-                  }
-                  metaWidth={
-                    PLACEHOLDER_LINE_VARIANTS[index % PLACEHOLDER_LINE_VARIANTS.length][3]
-                  }
-                />
-              ))}
-            </>
+            <div className="col-span-full py-8 text-center text-emerald-900/65">
+              Belum ada berita atau artikel yang dipublikasikan.
+            </div>
           ) : (
-            <>
-              {activeItems.map((item) => (
-                <Link
-                  key={item.id}
-                  href={item.type === "berita" ? `/berita/${item.slug}` : `/artikel/${item.slug}`}
-                  className="group flex items-start gap-3 rounded-xl border border-emerald-100/70 bg-white p-3 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:bg-white hover:shadow-[0_20px_50px_rgba(15,23,42,0.08)] sm:gap-4 sm:p-4 xl:h-full xl:flex-col"
-                >
-                  <div className="relative aspect-[4/3] w-28 shrink-0 overflow-hidden rounded-md bg-emerald-50 sm:w-40 xl:w-full">
-                    {item.coverImage ? (
-                      <Image
-                        src={item.coverImage}
-                        alt={item.title}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center bg-gradient-to-br from-emerald-100 to-emerald-50 text-emerald-500">
-                        <BookOpen className="h-10 w-10" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex flex-1 self-stretch flex-col justify-between">
-                    <div>
-                      <h3 className="line-clamp-2 text-base font-semibold leading-snug capitalize transition-colors group-hover:text-primary sm:text-lg">
-                        {item.title}
-                      </h3>
-                      <p className="hidden xl:mt-3 xl:line-clamp-2 xl:text-sm xl:leading-6 xl:text-muted-foreground">
-                        {truncateText(item.excerpt, 120)}
-                      </p>
+            activeItems.map((item) => (
+              <Link
+                key={item.id}
+                href={item.type === "berita" ? `/berita/${item.slug}` : `/artikel/${item.slug}`}
+                className="group flex items-start gap-4 rounded-[22px] border border-emerald-100 bg-white p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_44px_rgba(15,23,42,0.06)] xl:h-full"
+              >
+                <div className="relative aspect-[4/3] w-40 shrink-0 overflow-hidden rounded-[16px] bg-emerald-50">
+                  {item.coverImage ? (
+                    <Image
+                      src={item.coverImage}
+                      alt={item.title}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-emerald-100 to-emerald-50 text-emerald-500">
+                      <BookOpen className="h-10 w-10" />
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 pt-2 text-xs text-muted-foreground">
-                      <span>{formatDate(item.publishedAt)}</span>
-                      <span>•</span>
-                      <span>{item.readingTime}</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                  )}
+                </div>
 
-              {Array.from({ length: placeholderCount }, (_, index) => (
-                <PlaceholderCard
-                  key={`placeholder-${index}`}
-                  titleWidth={
-                    PLACEHOLDER_LINE_VARIANTS[
-                      (activeItems.length + index) % PLACEHOLDER_LINE_VARIANTS.length
-                    ][1]
-                  }
-                  subtitleWidth={
-                    PLACEHOLDER_LINE_VARIANTS[
-                      (activeItems.length + index) % PLACEHOLDER_LINE_VARIANTS.length
-                    ][2]
-                  }
-                  metaWidth={
-                    PLACEHOLDER_LINE_VARIANTS[
-                      (activeItems.length + index) % PLACEHOLDER_LINE_VARIANTS.length
-                    ][3]
-                  }
-                />
-              ))}
-            </>
+                <div className="min-w-0 flex flex-1 self-stretch flex-col justify-between">
+                  <div>
+                    <h3 className="line-clamp-2 text-base font-bold leading-tight capitalize text-slate-900">
+                      {item.title}
+                    </h3>
+                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">
+                      {truncateText(item.excerpt, 120)}
+                    </p>
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span>{formatDate(item.publishedAt)}</span>
+                    <span>•</span>
+                    <span>{item.readingTime}</span>
+                  </div>
+                </div>
+              </Link>
+            ))
           )}
         </div>
 

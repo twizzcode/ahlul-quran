@@ -42,6 +42,12 @@ export const publicArticleSelect = {
       slug: true,
     },
   },
+  donationCampaign: {
+    select: {
+      title: true,
+      slug: true,
+    },
+  },
 };
 
 export type PublicArticleRecord = {
@@ -61,6 +67,10 @@ export type PublicArticleRecord = {
   };
   category: {
     name: string;
+    slug: string;
+  } | null;
+  donationCampaign: {
+    title: string;
     slug: string;
   } | null;
 };

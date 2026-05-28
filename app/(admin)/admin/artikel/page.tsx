@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { desc } from "drizzle-orm";
+import { DashboardArticleFilters } from "@/components/dashboard/content/dashboard-article-filters";
 import { Button } from "@/components/ui/button";
+import { getAdminInternalPath } from "@/lib/routing/admin-routes";
 import { article as articleTable } from "@/src/db/schema";
 import { db } from "@/src";
 import { formatDateTime, truncateText } from "@/lib/utils";
@@ -13,34 +15,25 @@ export const dynamic = "force-dynamic";
 type DashboardArtikelPageProps = {
   searchParams: Promise<{
     type?: string;
-    category?: string;
     q?: string;
   }>;
 };
 
 export default async function DashboardArtikelPage({ searchParams }: DashboardArtikelPageProps) {
   const params = await searchParams;
-  const category = params.category?.trim() || "";
   const q = params.q?.trim().toLowerCase() || "";
   const type = params.type?.trim() || "";
 
-  const [articles, categories] = await Promise.all([
-    db.query.article.findMany({
-      with: {
-        author: { columns: { name: true } },
-        category: { columns: { id: true, name: true, slug: true } },
-      },
-      orderBy: [desc(articleTable.updatedAt)],
-      limit: 100,
-    }),
-    db.query.articleCategory.findMany({
-      columns: { id: true, name: true },
-      orderBy: (table, { asc }) => [asc(table.name)],
-    }),
-  ]);
+  const articles = await db.query.article.findMany({
+    with: {
+      author: { columns: { name: true } },
+      category: { columns: { id: true, name: true, slug: true } },
+    },
+    orderBy: [desc(articleTable.updatedAt)],
+    limit: 100,
+  });
 
   const filteredArticles = articles.filter((article) => {
-    if (category && article.categoryId !== category) return false;
     if (type && getPublicArticleType(article) !== type) return false;
     if (!q) return true;
 
@@ -49,7 +42,7 @@ export default async function DashboardArtikelPage({ searchParams }: DashboardAr
   });
 
   return (
-    <div>
+    <div className="pt-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Artikel</h1>
@@ -57,29 +50,15 @@ export default async function DashboardArtikelPage({ searchParams }: DashboardAr
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" asChild>
-            <Link href="/artikel/tulis?type=berita">+ Tulis Berita</Link>
+            <Link href={`${getAdminInternalPath("/artikel/tulis")}?type=berita`}>+ Tulis Berita</Link>
           </Button>
           <Button asChild>
-            <Link href="/artikel/tulis?type=artikel">+ Tulis Artikel</Link>
+            <Link href={`${getAdminInternalPath("/artikel/tulis")}?type=artikel`}>+ Tulis Artikel</Link>
           </Button>
         </div>
       </div>
 
-      <form className="mb-6 flex flex-wrap gap-3" method="get">
-        <select name="type" defaultValue={type} className="flex h-9 rounded-md border border-input bg-background px-3 text-sm">
-          <option value="">Semua Jenis</option>
-          <option value="artikel">Artikel</option>
-          <option value="berita">Berita</option>
-        </select>
-        <select name="category" defaultValue={category} className="flex h-9 rounded-md border border-input bg-background px-3 text-sm">
-          <option value="">Semua Kategori</option>
-          {categories.map((item) => (
-            <option key={item.id} value={item.id}>{item.name}</option>
-          ))}
-        </select>
-        <input type="text" name="q" placeholder="Cari artikel..." defaultValue={params.q ?? ""} className="flex h-9 w-72 rounded-md border border-input bg-background px-3 text-sm" />
-        <Button type="submit" variant="outline" size="sm">Filter</Button>
-      </form>
+      <DashboardArticleFilters initialType={type} initialQuery={params.q ?? ""} />
 
       <div className="overflow-x-auto rounded-xl border">
         <table className="w-full text-sm">
@@ -87,7 +66,6 @@ export default async function DashboardArtikelPage({ searchParams }: DashboardAr
             <tr className="border-b bg-muted/50">
               <th className="p-4 text-left font-medium">Judul</th>
               <th className="p-4 text-left font-medium">Jenis</th>
-              <th className="p-4 text-left font-medium">Kategori</th>
               <th className="p-4 text-left font-medium">Penulis</th>
               <th className="p-4 text-left font-medium">Views</th>
               <th className="p-4 text-left font-medium">Updated</th>
@@ -97,7 +75,7 @@ export default async function DashboardArtikelPage({ searchParams }: DashboardAr
           <tbody>
             {filteredArticles.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                <td colSpan={6} className="p-8 text-center text-muted-foreground">
                   Belum ada konten. Klik tombol tulis di atas untuk membuat artikel atau berita baru.
                 </td>
               </tr>
@@ -122,14 +100,13 @@ export default async function DashboardArtikelPage({ searchParams }: DashboardAr
                     </div>
                   </td>
                   <td className="p-4"><span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium capitalize text-slate-700">{getPublicArticleType(article)}</span></td>
-                  <td className="p-4">{article.category?.name || "-"}</td>
                   <td className="p-4">{article.author.name}</td>
                   <td className="p-4">{article.viewCount}</td>
                   <td className="p-4">{formatDateTime(article.updatedAt)}</td>
                   <td className="p-4 text-right">
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="outline" asChild>
-                        <Link href={`/artikel/${article.slug}/edit`}>Edit</Link>
+                        <Link href={getAdminInternalPath(`/artikel/${article.slug}/edit`)}>Edit</Link>
                       </Button>
                       <Button size="sm" variant="outline" asChild>
                         <Link href={`/${getPublicArticleType(article)}/${article.slug}`} target="_blank">Lihat</Link>

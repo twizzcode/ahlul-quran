@@ -8,7 +8,6 @@ export default async function DashboardGaleriPage() {
   const galleriesRaw = await db.query.gallery.findMany({
     with: {
       images: true,
-      author: { columns: { name: true } },
     },
     orderBy: (table, { desc }) => [desc(table.createdAt)],
   });
@@ -19,7 +18,6 @@ export default async function DashboardGaleriPage() {
     description: gallery.description,
     createdAt: gallery.createdAt.toISOString(),
     updatedAt: gallery.updatedAt.toISOString(),
-    authorName: gallery.author.name,
     imageCount: gallery.images.length,
     images: gallery.images.sort((a, b) => a.order - b.order).map((image) => ({
       id: image.id,

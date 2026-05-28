@@ -90,6 +90,7 @@ import { uploadFileToR2 } from "@/lib/storage/upload-client"
 type PluginsProps = {
   placeholder?: string
   minHeightClassName?: string
+  allowImageUpload?: boolean
   imageUploadFolder?: string
   onUploadError?: (message: string) => void
   onPendingImageAdd?: (file: File, previewUrl: string) => void
@@ -144,10 +145,12 @@ function ToolbarSelect({
 }
 
 function ToolbarPlugin({
+  allowImageUpload = true,
   imageUploadFolder = "articles/content",
   onUploadError,
   onPendingImageAdd,
 }: {
+  allowImageUpload?: boolean
   imageUploadFolder?: string
   onUploadError?: (message: string) => void
   onPendingImageAdd?: (file: File, previewUrl: string) => void
@@ -430,13 +433,15 @@ function ToolbarPlugin({
   return (
     <div className="border-b bg-background/95 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/75">
       <div className="flex flex-wrap items-center gap-2">
-        <input
-          ref={imageInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleImageChange}
-        />
+        {allowImageUpload ? (
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageChange}
+          />
+        ) : null}
         <input
           ref={colorInputRef}
           type="color"
@@ -638,15 +643,17 @@ function ToolbarPlugin({
         >
           <ListOrdered />
         </ToolbarButton>
-        <ToolbarButton
-          aria-label="Upload gambar"
-          disabled={isUploadingImage}
-          onClick={() => imageInputRef.current?.click()}
-          className="w-auto px-3"
-        >
-          <ImagePlus />
-          <span className="text-xs">{isUploadingImage ? "Uploading..." : "Insert"}</span>
-        </ToolbarButton>
+        {allowImageUpload ? (
+          <ToolbarButton
+            aria-label="Upload gambar"
+            disabled={isUploadingImage}
+            onClick={() => imageInputRef.current?.click()}
+            className="w-auto px-3"
+          >
+            <ImagePlus />
+            <span className="text-xs">{isUploadingImage ? "Uploading..." : "Insert"}</span>
+          </ToolbarButton>
+        ) : null}
       </div>
     </div>
   )
@@ -655,6 +662,7 @@ function ToolbarPlugin({
 export function Plugins({
   placeholder = "Mulai menulis...",
   minHeightClassName = "min-h-[340px]",
+  allowImageUpload = true,
   imageUploadFolder,
   onUploadError,
   onPendingImageAdd,
@@ -662,6 +670,7 @@ export function Plugins({
   return (
     <div className="relative">
       <ToolbarPlugin
+        allowImageUpload={allowImageUpload}
         imageUploadFolder={imageUploadFolder}
         onUploadError={onUploadError}
         onPendingImageAdd={onPendingImageAdd}

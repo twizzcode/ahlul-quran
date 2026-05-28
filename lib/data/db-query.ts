@@ -74,6 +74,10 @@ function campaignWhere(args?: QueryArgs) {
     clauses.push(eq(donationCampaign.slug, where.slug));
   }
 
+  if (where.id) {
+    clauses.push(eq(donationCampaign.id, where.id));
+  }
+
   return clauses.length > 0 ? and(...clauses) : undefined;
 }
 
@@ -92,6 +96,14 @@ async function findCampaignBySlug(args: QueryArgs) {
           category: true,
         },
         orderBy: articleOrderBy(),
+      },
+      galleries: {
+        with: {
+          images: {
+            orderBy: [galleryImage.order],
+          },
+        },
+        orderBy: (gallery, { desc }) => [desc(gallery.createdAt)],
       },
     },
   });

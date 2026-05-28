@@ -28,6 +28,7 @@ type EditorProps = {
   html?: string
   placeholder?: string
   minHeightClassName?: string
+  allowImageUpload?: boolean
   imageUploadFolder?: string
   onPendingImageAdd?: (file: File, previewUrl: string) => void
   onChange?: (editorState: LexicalEditorState) => void
@@ -51,6 +52,7 @@ export function Editor({
   html,
   placeholder,
   minHeightClassName,
+  allowImageUpload = true,
   imageUploadFolder,
   onPendingImageAdd,
   onChange,
@@ -112,12 +114,13 @@ export function Editor({
   }, [editorSerializedState, editorState, html])
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-background shadow-sm">
+    <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
       <LexicalComposer initialConfig={initialConfig}>
         <TooltipProvider>
           <Plugins
             placeholder={placeholder}
             minHeightClassName={minHeightClassName}
+            allowImageUpload={allowImageUpload}
             imageUploadFolder={imageUploadFolder}
             onPendingImageAdd={onPendingImageAdd}
             onUploadError={onUploadError}

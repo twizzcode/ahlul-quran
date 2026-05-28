@@ -3,6 +3,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { PageIntro } from "@/components/content/page-intro";
 import { PublicContentSearch } from "@/components/content/public-content-search";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import dbQuery from "@/lib/data/db-query";
 import { getPublicArticleType, publicArticleSelect } from "@/lib/content/public-articles";
 import { formatDate, truncateText } from "@/lib/utils";
@@ -21,16 +30,34 @@ function getReadingTime(content: string) {
   return `${minutes} menit baca`;
 }
 
+function buildPageItems(currentPage: number, totalPages: number) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  if (currentPage <= 3) {
+    return [1, 2, 3, 4, "ellipsis", totalPages] as const;
+  }
+
+  if (currentPage >= totalPages - 2) {
+    return [1, "ellipsis", totalPages - 3, totalPages - 2, totalPages - 1, totalPages] as const;
+  }
+
+  return [1, "ellipsis", currentPage - 1, currentPage, currentPage + 1, "ellipsis-end", totalPages] as const;
+}
+
 export default async function ArtikelPage({
   searchParams,
 }: {
   searchParams: Promise<{
     page?: string;
     q?: string;
+    sort?: string;
   }>;
 }) {
   const params = await searchParams;
   const q = params.q?.trim() ?? "";
+  const sort = params.sort === "oldest" ? "oldest" : "newest";
 
   const where = {
     status: "PUBLISHED" as const,
@@ -53,20 +80,26 @@ export default async function ArtikelPage({
     },
   });
 
-  const filteredArticles = allArticles.filter(
-    (article) => getPublicArticleType(article) === "artikel"
-  );
+  const filteredArticles = allArticles
+    .filter((article) => getPublicArticleType(article) === "artikel")
+    .sort((left, right) => {
+      const leftTime = (left.publishedAt ?? left.createdAt).getTime();
+      const rightTime = (right.publishedAt ?? right.createdAt).getTime();
+      return sort === "oldest" ? leftTime - rightTime : rightTime - leftTime;
+    });
   const total = filteredArticles.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const page = Math.min(Math.max(1, Number(params.page ?? "1") || 1), totalPages);
   const articles = filteredArticles.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const prevPage = page > 1 ? page - 1 : null;
   const nextPage = page < totalPages ? page + 1 : null;
+  const pageItems = buildPageItems(page, totalPages);
 
   function createPageHref(next: number) {
     const query = new URLSearchParams();
 
     if (q) query.set("q", q);
+    if (sort === "oldest") query.set("sort", sort);
     query.set("page", String(next));
 
     return `/artikel?${query.toString()}`;
@@ -81,14 +114,14 @@ export default async function ArtikelPage({
         primaryAction={{ label: "Lihat Berita Terkini", href: "/berita" }}
       />
 
-      <PublicContentSearch initialQuery={q} placeholder="Cari artikel..." />
+      <PublicContentSearch initialQuery={q} initialSort={sort} placeholder="Cari artikel..." />
 
       {articles.length === 0 ? (
-        <div className="rounded-lg border p-8 text-center text-muted-foreground">
+        <div className="py-8 text-center text-muted-foreground">
           Artikel belum tersedia untuk filter ini.
         </div>
       ) : (
-        <div className="space-y-4 xl:grid xl:grid-cols-3 xl:gap-6 xl:space-y-0">
+        <div className="space-y-4">
           {articles.map((article) => {
             const publishedDate = article.publishedAt ?? article.createdAt;
 
@@ -96,32 +129,32 @@ export default async function ArtikelPage({
               <Link
                 key={article.id}
                 href={`/artikel/${article.slug}`}
-                className="group flex items-start gap-3 rounded-xl border border-emerald-100/70 bg-white p-3 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:bg-white hover:shadow-[0_20px_50px_rgba(15,23,42,0.08)] sm:gap-4 sm:p-4 xl:h-full xl:flex-col"
+                className="group flex flex-col gap-4 overflow-hidden rounded-[22px] border border-emerald-100 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_44px_rgba(15,23,42,0.06)] sm:flex-row sm:items-start"
               >
                 {article.coverImage ? (
-                  <div className="relative aspect-[4/3] w-28 shrink-0 overflow-hidden rounded-md sm:w-40 xl:w-full">
+                  <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-[16px] bg-muted sm:w-56">
                     <Image
                       src={article.coverImage}
                       alt={article.title}
                       fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>
                 ) : (
-                  <div className="aspect-[4/3] w-28 shrink-0 rounded-md bg-muted sm:w-40 xl:w-full" />
+                  <div className="aspect-[4/3] w-full shrink-0 rounded-[16px] bg-muted sm:w-56" />
                 )}
 
-                <div className="min-w-0 flex flex-1 self-stretch flex-col justify-between">
+                <div className="flex min-w-0 flex-1 flex-col justify-between self-stretch">
                   <div>
-                    <h2 className="line-clamp-2 text-base font-semibold leading-snug capitalize transition-colors group-hover:text-primary sm:text-lg">
+                    <h2 className="line-clamp-2 text-lg font-bold leading-tight text-slate-900 capitalize">
                       {article.title}
                     </h2>
-                    <p className="hidden xl:mt-3 xl:line-clamp-2 xl:text-sm xl:leading-6 xl:text-muted-foreground">
-                      {truncateText(article.excerpt || stripHtmlTags(article.content), 180)}
+                    <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground">
+                      {truncateText(article.excerpt || stripHtmlTags(article.content), 220)}
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 pt-2 text-xs text-muted-foreground xl:pt-4">
+                  <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span>{formatDate(publishedDate)}</span>
                     <span>•</span>
                     <span>{getReadingTime(article.content)}</span>
@@ -133,37 +166,47 @@ export default async function ArtikelPage({
         </div>
       )}
 
-      <div className="mt-8 flex justify-center gap-2">
-        {prevPage ? (
-          <Link
-            href={createPageHref(prevPage)}
-            className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
-          >
-            Sebelumnya
-          </Link>
-        ) : (
-          <span className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium text-muted-foreground opacity-50">
-            Sebelumnya
-          </span>
-        )}
+      <Pagination className="mt-8">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious
+              href={prevPage ? createPageHref(prevPage) : "#"}
+              aria-disabled={!prevPage}
+              className={!prevPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
+            />
+          </PaginationItem>
 
-        <span className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
-          {page}
-        </span>
+          {pageItems.map((item, index) => {
+            if (typeof item !== "number") {
+              return (
+                <PaginationItem key={`${item}-${index}`}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              );
+            }
 
-        {nextPage ? (
-          <Link
-            href={createPageHref(nextPage)}
-            className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
-          >
-            Selanjutnya
-          </Link>
-        ) : (
-          <span className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium text-muted-foreground opacity-50">
-            Selanjutnya
-          </span>
-        )}
-      </div>
+            return (
+              <PaginationItem key={item}>
+                <PaginationLink
+                  href={createPageHref(item)}
+                  isActive={item === page}
+                  className="cursor-pointer rounded-xl border-emerald-100 data-[active=true]:border-emerald-900 data-[active=true]:bg-emerald-900 data-[active=true]:text-white"
+                >
+                  {item}
+                </PaginationLink>
+              </PaginationItem>
+            );
+          })}
+
+          <PaginationItem>
+            <PaginationNext
+              href={nextPage ? createPageHref(nextPage) : "#"}
+              aria-disabled={!nextPage}
+              className={!nextPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
     </div>
   );
 }
