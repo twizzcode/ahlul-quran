@@ -18,7 +18,7 @@ export const ADMIN_ROUTE_PATHS = {
 export const ADMIN_NAV_ITEMS = {
   main: [
     { title: "Dashboard", url: ADMIN_ROUTE_PATHS.dashboard },
-    { title: "Artikel", url: ADMIN_ROUTE_PATHS.artikel },
+    { title: "Berita dan Artikel", url: ADMIN_ROUTE_PATHS.artikel },
     { title: "Donasi", url: ADMIN_ROUTE_PATHS.donasi },
     { title: "Kampanye", url: ADMIN_ROUTE_PATHS.kampanye },
     { title: "Galeri", url: ADMIN_ROUTE_PATHS.galeri },
@@ -98,7 +98,7 @@ const ALIAS_TO_INTERNAL: Record<string, string> = {
 
 const PAGE_TITLES: Record<string, string> = {
   [ADMIN_ROUTE_PATHS.dashboard]: "Dashboard",
-  [ADMIN_ROUTE_PATHS.artikel]: "Artikel",
+  [ADMIN_ROUTE_PATHS.artikel]: "Berita dan Artikel",
   [ADMIN_ROUTE_PATHS.donasi]: "Donasi",
   [ADMIN_ROUTE_PATHS.kampanye]: "Kampanye",
   [ADMIN_ROUTE_PATHS.kampanyeCreate]: "Buat Kampanye",
@@ -158,11 +158,11 @@ export function getAdminInternalPath(pathname: string) {
 
 export function getAdminPageTitle(pathname: string) {
   if (pathname === ADMIN_ROUTE_PATHS.artikelCreate) {
-    return "Tulis Artikel";
+    return "Tulis Berita atau Artikel";
   }
 
   if (pathname.startsWith("/artikel/") && pathname.endsWith("/edit")) {
-    return "Edit Artikel";
+    return "Edit Berita atau Artikel";
   }
 
   if (pathname.startsWith(`${ADMIN_ROUTE_PATHS.kampanye}/`)) {

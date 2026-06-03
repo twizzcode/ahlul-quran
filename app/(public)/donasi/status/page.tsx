@@ -10,7 +10,12 @@ export const metadata: Metadata = {
 export default async function DonasiStatusPage({
   searchParams,
 }: {
-  searchParams: Promise<{ order_id?: string }>;
+  searchParams: Promise<{
+    order_id?: string;
+    bank_name?: string;
+    bank_account?: string;
+    bank_holder?: string;
+  }>;
 }) {
   const params = await searchParams;
   const orderId = params.order_id?.trim() || "";
@@ -20,10 +25,9 @@ export default async function DonasiStatusPage({
   return (
     <DonationStatusClient
       orderId={orderId}
-      bankName={manualTransfer.bankName}
-      bankAccount={manualTransfer.bankAccount}
-      bankHolder={manualTransfer.bankHolder}
-      whatsappNumber={manualTransfer.whatsappNumber}
+      bankName={params.bank_name?.trim() || manualTransfer.bankName}
+      bankAccount={params.bank_account?.trim() || manualTransfer.bankAccount}
+      bankHolder={params.bank_holder?.trim() || manualTransfer.bankHolder}
     />
   );
 }

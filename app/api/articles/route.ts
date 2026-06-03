@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { getAdminRequestContext } from "@/lib/auth/admin-session";
-import { getExplicitArticleType } from "@/lib/content/public-articles";
+import type { PublicArticleType } from "@/lib/content/public-articles";
 import { apiError, apiSuccess, generateSlug } from "@/lib/utils";
 import { db } from "@/src";
 import { article, articleCategory } from "@/src/db/schema";
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   const content = String(payload.content ?? "").trim();
   const excerpt = payload.excerpt ? String(payload.excerpt).trim() : null;
   const coverImage = payload.coverImage ? String(payload.coverImage).trim() : null;
-  const tags = Array.isArray(payload.tags) ? payload.tags.map(String) : [];
+  const type: PublicArticleType = payload.type === "berita" ? "berita" : "artikel";
   const donationCampaignId = payload.donationCampaignId ? String(payload.donationCampaignId).trim() : null;
 
   if (title.length < 3 || content.length < 10) {
@@ -62,7 +62,6 @@ export async function POST(request: Request) {
 
   const slug = await ensureUniqueArticleSlug(title);
   const categoryId = await resolveCategoryId(payload.categoryId, payload.categoryName);
-  const articleType = getExplicitArticleType(tags) ?? "artikel";
   const publishedAt = new Date();
 
   const [created] = await db.insert(article).values({
@@ -72,13 +71,13 @@ export async function POST(request: Request) {
     excerpt,
     content,
     coverImage,
+    type,
     status: "PUBLISHED",
     publishedAt,
     authorId: context.user.id,
     categoryId,
-    donationCampaignId: articleType === "berita" ? donationCampaignId : null,
-    tags,
+    donationCampaignId: type === "berita" ? donationCampaignId : null,
   }).returning();
 
-  return apiSuccess(created, "Artikel berhasil dibuat.");
+  return apiSuccess(created, `${type === "berita" ? "Berita" : "Artikel"} berhasil dibuat.`);
 }

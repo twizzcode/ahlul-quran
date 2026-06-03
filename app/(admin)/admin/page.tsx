@@ -29,7 +29,7 @@ const moduleMeta: Record<string, { description: string; icon: LucideIcon }> = {
     description: "Ringkasan performa admin, trafik konten, dan aktivitas donasi terbaru.",
     icon: Landmark,
   },
-  Artikel: {
+  "Berita dan Artikel": {
     description: "Kelola berita, artikel kajian, dan update kampanye publik.",
     icon: BookOpen,
   },

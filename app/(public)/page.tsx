@@ -126,7 +126,7 @@ export default async function HomePage() {
     }),
   ]);
 
-  const latestHomeContentItems = latestArticles.slice(0, 3).map((article) => ({
+  const latestHomeContentItems = latestArticles.slice(0, 4).map((article) => ({
     id: article.id,
     slug: article.slug,
     title: article.title,
@@ -139,7 +139,7 @@ export default async function HomePage() {
     type: getPublicArticleType(article),
   }));
   const displayedArticles =
-    latestHomeContentItems.length > 0 ? latestHomeContentItems : latestArticles.slice(0, 3);
+    latestHomeContentItems.length > 0 ? latestHomeContentItems : latestArticles.slice(0, 4);
 
   const donationCampaigns = campaigns.map((campaign) => {
     const collectedAmount = campaign.donations.reduce((sum, d) => sum + d.amount, 0);
@@ -401,7 +401,7 @@ export default async function HomePage() {
                 return (
                   <article
                     key={campaign.id}
-                    className="group overflow-hidden rounded-[22px] border border-emerald-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+                    className="group overflow-hidden rounded-[22px] border border-emerald-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
                   >
                     <Link href={`/donasi/${campaign.slug}`} className="block">
                       <div className="flex h-full flex-col">
@@ -515,7 +515,7 @@ export default async function HomePage() {
 
       <HomeContentTabs items={latestHomeContentItems} />
 
-      <section className="pb-28 pt-8 sm:pb-32 sm:pt-10">
+      <section className="pb-28 pt-24 sm:pb-32 sm:pt-36 lg:pt-40 xl:pt-44">
         <div className="mx-auto w-full max-w-7xl px-6">
           <div className="mb-8 max-w-2xl">
             <span className="text-sm font-semibold uppercase tracking-wider text-emerald-700">

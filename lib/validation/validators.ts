@@ -9,10 +9,10 @@ export const createArticleSchema = z.object({
   content: z.string().min(10, "Konten minimal 10 karakter"),
   excerpt: z.string().optional(),
   coverImage: z.string().url().optional(),
+  type: z.enum(["berita", "artikel"]).default("artikel"),
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).default("DRAFT"),
   categoryId: z.string().optional(),
   donationCampaignId: z.string().optional(),
-  tags: z.array(z.string()).default([]),
 });
 
 export const updateArticleSchema = createArticleSchema.partial();
@@ -46,7 +46,7 @@ export const createDonationSchema = z.object({
   message: z.string().optional(),
   isAnonymous: z.boolean().default(false),
   campaignId: z.string().optional(),
-  paymentMethod: z.enum(["BSI_TRANSFER"]).default("BSI_TRANSFER"),
+  paymentMethod: z.string().min(1, "Metode pembayaran wajib dipilih"),
 });
 
 export const createManualDonationSchema = z.object({
@@ -162,6 +162,8 @@ export const updateMasjidProfileSchema = z.object({
   tiktok: optionalText,
   qrisEnabled: z.boolean().optional(),
   qrisImageUrl: optionalUrl,
+  qrisIconUrl: optionalUrl,
+  qrisHolderName: optionalText,
   donationBankAccounts: z
     .array(
       z.object({

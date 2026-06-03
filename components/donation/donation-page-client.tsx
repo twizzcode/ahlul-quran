@@ -202,7 +202,6 @@ export function DonationPageClient({
         <section className="xl:col-span-2">
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Program Donasi</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Menampilkan {filteredCampaigns.length} dari {campaigns.length} campaign.
               </p>
@@ -301,7 +300,7 @@ export function DonationPageClient({
                 return (
                   <article
                     key={campaign.id}
-                    className="group overflow-hidden rounded-[22px] border border-emerald-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+                    className="group overflow-hidden rounded-[22px] border border-emerald-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
                   >
                     <Link href={`/donasi/${campaign.slug}`} className="block">
                       <div className="flex h-full flex-col">

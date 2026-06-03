@@ -28,10 +28,7 @@ export default async function ProfilPage() {
           primaryAction={{ label: "Dukung Pembangunan", href: "/donasi" }}
         />
 
-        <section
-          id="latar-belakang"
-          className="scroll-mt-28 border-b border-emerald-100 py-14"
-        >
+        <section id="latar-belakang" className="scroll-mt-28 py-14">
           <SectionHeading
             eyebrow="Latar Belakang"
             title="Pendirian masjid diarahkan untuk menjawab kebutuhan umat yang lebih luas"
@@ -57,7 +54,7 @@ export default async function ProfilPage() {
           </div>
         </section>
 
-        <section id="visi-utama" className="scroll-mt-28 border-b border-emerald-100 py-14">
+        <section id="visi-utama" className="scroll-mt-28 py-14">
           <SectionHeading
             eyebrow="Visi Utama"
             title="Arah pembangunan Masjid Ahlul Qur'an"
@@ -79,7 +76,7 @@ export default async function ProfilPage() {
           />
         </section>
 
-        <section id="pilar-gerakan" className="scroll-mt-28 border-b border-emerald-100 py-14">
+        <section id="pilar-gerakan" className="scroll-mt-28 py-14">
           <SectionHeading
             eyebrow="Pilar Gerakan"
             title="Empat fungsi utama markas dakwah"
@@ -102,10 +99,7 @@ export default async function ProfilPage() {
           </div>
         </section>
 
-        <section
-          id="tahapan-pendirian"
-          className="scroll-mt-28 border-b border-emerald-100 py-14"
-        >
+        <section id="tahapan-pendirian" className="scroll-mt-28 py-14">
           <SectionHeading
             eyebrow="Tahapan Proses"
             title="Road to pembangunan dan aktivasi markas dakwah"
@@ -117,10 +111,7 @@ export default async function ProfilPage() {
           </div>
         </section>
 
-        <section
-          id="struktur-panitia"
-          className="scroll-mt-28 border-b border-emerald-100 py-14"
-        >
+        <section id="struktur-panitia" className="scroll-mt-28 py-14">
           <SectionHeading
             eyebrow="Struktur Panitia"
             title="Struktur teknis dan tupoksi yang menopang pembangunan"
@@ -132,7 +123,7 @@ export default async function ProfilPage() {
           </div>
         </section>
 
-        <section id="sumber-dana" className="scroll-mt-28 border-b border-emerald-100 py-14">
+        <section id="sumber-dana" className="scroll-mt-28 py-14">
           <SectionHeading
             eyebrow="Sumber Dana"
             title="Model penggalangan yang dirancang untuk menopang gerakan"

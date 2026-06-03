@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
+import { Landmark, QrCode } from "lucide-react";
+import { getBankOptionByLabel } from "@/lib/donation/bank-options";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -37,6 +39,18 @@ type DonationCheckoutCampaign = {
   bankName: string;
   bankAccount: string;
   bankHolder: string;
+  logoUrl: string;
+  qrisEnabled: boolean;
+  qrisImageUrl: string | null;
+  qrisIconUrl: string | null;
+  qrisHolderName: string;
+  bankAccounts: Array<{
+    bankName: string;
+    bankAccount: string;
+    bankHolder: string;
+    logoUrl: string;
+    isActive: boolean;
+  }>;
 };
 
 type DonationCheckoutFormProps = {
@@ -92,7 +106,6 @@ export function DonationCheckoutForm({
   campaign,
 }: DonationCheckoutFormProps) {
   const { data: session } = useSession();
-  const [paymentMethod] = useState<"BSI_TRANSFER">("BSI_TRANSFER");
   const [selectedPresetAmount, setSelectedPresetAmount] = useState<number>(100000);
   const [customAmount, setCustomAmount] = useState<string>("");
   const [donorName, setDonorName] = useState<string>("");
@@ -102,11 +115,43 @@ export function DonationCheckoutForm({
   const [isAnonymous, setIsAnonymous] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const activeBankAccounts = campaign.bankAccounts.filter(
+    (item) => item.isActive && item.bankName && item.bankAccount && item.bankHolder
+  );
+  const availablePaymentMethods = [
+    ...activeBankAccounts.map((account, index) => ({
+      id: `bank-${index}`,
+      type: "bank" as const,
+      title: account.bankName,
+      logoUrl: account.logoUrl || getBankOptionByLabel(account.bankName)?.logoUrl || "",
+      bankAccount: account.bankAccount,
+      bankHolder: account.bankHolder,
+    })),
+    ...(campaign.qrisEnabled
+        ? [
+          {
+            id: "qris",
+            type: "qris" as const,
+            title: "QRIS",
+            logoUrl: campaign.logoUrl,
+          },
+        ]
+      : []),
+  ];
+  const [paymentMethod, setPaymentMethod] = useState<string>(
+    availablePaymentMethods[0]?.id ?? "bank-0"
+  );
 
   const donationAmount = customAmount.trim() === "" ? selectedPresetAmount : Number(customAmount);
   const visibleSupporters = campaign.supporters.slice(0, 5);
   const extraSupporters = Math.max(campaign.supporters.length - visibleSupporters.length, 0);
-  const hasManualBankDetails = Boolean(campaign.bankName && campaign.bankAccount);
+  const selectedBankIndex = paymentMethod.startsWith("bank-")
+    ? Number(paymentMethod.replace("bank-", ""))
+    : -1;
+  const selectedBankAccount =
+    Number.isInteger(selectedBankIndex) && selectedBankIndex >= 0
+      ? activeBankAccounts[selectedBankIndex]
+      : null;
 
   useEffect(() => {
     if (!session?.user) return;
@@ -134,8 +179,18 @@ export function DonationCheckoutForm({
       return;
     }
 
-    if (paymentMethod === "BSI_TRANSFER" && !hasManualBankDetails) {
-      setErrorMessage("Informasi rekening BSI masjid belum tersedia.");
+    if (availablePaymentMethods.length === 0) {
+      setErrorMessage("Metode pembayaran aktif belum tersedia.");
+      return;
+    }
+
+    if (
+      paymentMethod.startsWith("bank-") &&
+      (!selectedBankAccount?.bankName ||
+        !selectedBankAccount.bankAccount ||
+        !selectedBankAccount.bankHolder)
+    ) {
+      setErrorMessage("Informasi rekening masjid belum tersedia.");
       return;
     }
 
@@ -156,6 +211,13 @@ export function DonationCheckoutForm({
           isAnonymous,
           campaignId: campaign.id,
           paymentMethod,
+          selectedBank: selectedBankAccount
+            ? {
+                bankName: selectedBankAccount.bankName,
+                bankAccount: selectedBankAccount.bankAccount,
+                bankHolder: selectedBankAccount.bankHolder,
+              }
+            : undefined,
         }),
       });
 
@@ -190,35 +252,34 @@ export function DonationCheckoutForm({
         <div className="space-y-8 lg:pr-10 lg:border-r lg:border-emerald-100">
           <article>
             <div className="grid gap-5 md:grid-cols-[210px_minmax(0,1fr)] md:items-start">
-              <div className="relative h-40 overflow-hidden rounded-[20px] md:h-[170px]">
+              <div className="relative h-40 overflow-hidden rounded-[20px] bg-emerald-50 md:h-[170px]">
                 <Image
                   src={campaign.coverImage || "/Gambar-masjid.png"}
                   alt={campaign.title}
                   fill
                   className="object-cover"
                 />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.16)_0%,rgba(15,23,42,0.62)_100%)]" />
               </div>
 
               <div className="min-w-0">
-                <h3 className="text-2xl font-bold leading-tight capitalize text-slate-900">
+                <h3 className="text-2xl font-bold leading-tight capitalize text-emerald-950">
                   {campaign.title}
                 </h3>
-                <p className="mt-3 text-sm leading-7 text-slate-600">
+                <p className="mt-3 text-sm leading-7 text-emerald-900/72">
                   {campaign.description}
                 </p>
 
                 <div className="mt-5 flex flex-wrap items-end gap-x-2 gap-y-1">
-                  <p className="text-2xl font-bold tracking-tight text-slate-950">
+                  <p className="text-2xl font-bold tracking-tight text-emerald-950">
                     {formatCurrency(campaign.collectedAmount)}
                   </p>
-                  <p className="text-sm text-slate-500">terkumpul dari</p>
-                  <p className="text-lg font-semibold text-slate-900">
+                  <p className="text-sm text-emerald-800/70">terkumpul dari</p>
+                  <p className="text-lg font-semibold text-emerald-900">
                     {formatCurrency(campaign.targetAmount)}
                   </p>
                 </div>
 
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-emerald-100">
                   <div
                     className="h-full rounded-full bg-emerald-600 transition-all"
                     style={{ width: `${campaign.progress}%` }}
@@ -242,9 +303,9 @@ export function DonationCheckoutForm({
                                       src={buildAvatarDataUri(supporter.name, index)}
                                       alt={supporter.name}
                                     />
-                                    <AvatarFallback className="bg-slate-700 text-[8px] font-semibold text-white">
-                                      {getInitials(supporter.name)}
-                                    </AvatarFallback>
+                                  <AvatarFallback className="bg-emerald-900 text-[8px] font-semibold text-white">
+                                    {getInitials(supporter.name)}
+                                  </AvatarFallback>
                                   </Avatar>
                                 </div>
                               </TooltipTrigger>
@@ -258,7 +319,7 @@ export function DonationCheckoutForm({
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div>
-                                  <AvatarGroupCount className="size-5 bg-slate-500 text-[7px] font-semibold text-white ring-2 ring-white">
+                                  <AvatarGroupCount className="size-5 bg-emerald-700 text-[7px] font-semibold text-white ring-2 ring-white">
                                     +{extraSupporters}
                                   </AvatarGroupCount>
                                 </div>
@@ -272,14 +333,14 @@ export function DonationCheckoutForm({
                       </TooltipProvider>
                     ) : (
                       <Avatar size="sm" className="size-5 ring-2 ring-white">
-                        <AvatarFallback className="bg-slate-700 text-[8px] font-semibold text-white">
+                        <AvatarFallback className="bg-emerald-900 text-[8px] font-semibold text-white">
                           HA
                         </AvatarFallback>
                       </Avatar>
                     )}
                   </div>
 
-                  <p className="shrink-0 text-sm text-slate-500">
+                  <p className="shrink-0 text-sm text-emerald-800/70">
                     {getDaysLeftText(campaign.endDate)}
                   </p>
                 </div>
@@ -292,13 +353,13 @@ export function DonationCheckoutForm({
               <h2 className="text-lg font-semibold text-emerald-950">
                 Donasi & Metode Pembayaran
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-emerald-900/65">
                 Pilih nominal donasi dan metode pembayaran yang ingin digunakan.
               </p>
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium">Jumlah Donasi</label>
+              <label className="mb-2 block text-sm font-medium text-emerald-950">Jumlah Donasi</label>
               <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-3">
                 {presetAmounts.map((amount) => (
                   <button
@@ -309,7 +370,7 @@ export function DonationCheckoutForm({
                       setSelectedPresetAmount(amount);
                       setCustomAmount("");
                     }}
-                    className="rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground"
+                    className="rounded-xl border border-emerald-100 bg-white px-3 py-2.5 text-sm font-medium text-emerald-900 transition hover:border-emerald-300 hover:bg-emerald-50 data-[selected=true]:border-emerald-900 data-[selected=true]:bg-emerald-900 data-[selected=true]:text-white"
                   >
                     {formatCurrency(amount)}
                   </button>
@@ -322,38 +383,55 @@ export function DonationCheckoutForm({
                 placeholder="Atau masukkan jumlah lain..."
                 value={customAmount}
                 onChange={(event) => setCustomAmount(event.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="flex h-11 w-full rounded-xl border border-emerald-100 bg-white px-4 py-2 text-sm text-emerald-950"
               />
             </div>
 
             <div className="mt-5">
-              <label className="mb-2 block text-sm font-medium">Metode Pembayaran</label>
-              <div className="py-2">
-                <div className="flex items-center gap-3">
-                  <div className="relative h-9 w-9 overflow-hidden rounded-md bg-white">
-                    <Image
-                      src="/bsi.png"
-                      alt="Logo Bank BSI"
-                      fill
-                      className="object-contain p-1"
-                    />
+              <label className="mb-2 block text-sm font-medium text-emerald-950">Metode Pembayaran</label>
+              <div className="grid gap-3">
+                {availablePaymentMethods.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/40 px-4 py-4 text-sm text-emerald-900/70">
+                    Belum ada metode pembayaran yang aktif di panel admin.
                   </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">Transfer Bank BSI</p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Detail rekening akan ditampilkan di halaman berikutnya.
-                    </p>
-                  </div>
-                </div>
+                ) : (
+                  availablePaymentMethods.map((method) => (
+                    <button
+                      key={method.id}
+                      type="button"
+                      onClick={() => setPaymentMethod(method.id)}
+                      data-selected={paymentMethod === method.id}
+                      className="flex items-center gap-4 rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-left transition hover:border-emerald-300 hover:bg-emerald-50/50 data-[selected=true]:border-emerald-900 data-[selected=true]:bg-emerald-50"
+                    >
+                      <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-emerald-100 bg-white">
+                        {method.logoUrl ? (
+                          <Image
+                            src={method.logoUrl}
+                            alt={method.title}
+                            fill
+                            className={method.type === "qris" ? "object-contain p-1.5" : "object-contain p-2"}
+                          />
+                        ) : method.type === "qris" ? (
+                          <QrCode className="h-6 w-6 text-emerald-800" />
+                        ) : (
+                          <Landmark className="h-6 w-6 text-emerald-800" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-emerald-950">{method.title}</p>
+                      </div>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
 
             <Separator className="mt-6 bg-emerald-100" />
 
-            <div className="mt-5 text-sm">
+            <div className="mt-5 text-sm text-emerald-900/75">
               <p>
                 Total donasi:{" "}
-                <span className="font-semibold">{formatCurrency(donationAmount || 0)}</span>
+                <span className="font-semibold text-emerald-950">{formatCurrency(donationAmount || 0)}</span>
               </p>
             </div>
           </section>
@@ -363,58 +441,58 @@ export function DonationCheckoutForm({
           <section>
             <div className="mb-5">
               <h2 className="text-lg font-semibold text-emerald-950">Detail Donatur</h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-emerald-900/65">
                 Isi data donatur untuk kebutuhan pencatatan dan konfirmasi pembayaran.
               </p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium">Nama Donatur</label>
+                <label className="mb-2 block text-sm font-medium text-emerald-950">Nama Donatur</label>
                 <input
                   type="text"
                   placeholder="Nama lengkap"
                   value={donorName}
                   onChange={(event) => setDonorName(event.target.value)}
                   disabled={isAnonymous}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-60"
+                  className="flex h-11 w-full rounded-xl border border-emerald-100 bg-white px-4 py-2 text-sm text-emerald-950 disabled:opacity-60"
                 />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">Email (opsional)</label>
+                <label className="mb-2 block text-sm font-medium text-emerald-950">Email (opsional)</label>
                 <input
                   type="email"
                   placeholder="email@contoh.com"
                   value={donorEmail}
                   onChange={(event) => setDonorEmail(event.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="flex h-11 w-full rounded-xl border border-emerald-100 bg-white px-4 py-2 text-sm text-emerald-950"
                 />
               </div>
             </div>
 
             <div className="mt-4">
-              <label className="mb-2 block text-sm font-medium">No. HP (opsional)</label>
+              <label className="mb-2 block text-sm font-medium text-emerald-950">No. HP (opsional)</label>
               <input
                 type="text"
                 placeholder="08xxxxxxxxxx"
                 value={donorPhone}
                 onChange={(event) => setDonorPhone(event.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="flex h-11 w-full rounded-xl border border-emerald-100 bg-white px-4 py-2 text-sm text-emerald-950"
               />
             </div>
 
             <div className="mt-4">
-              <label className="mb-2 block text-sm font-medium">Pesan / Doa (opsional)</label>
+              <label className="mb-2 block text-sm font-medium text-emerald-950">Pesan / Doa (opsional)</label>
               <textarea
                 placeholder="Tuliskan pesan atau doa..."
                 rows={3}
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="flex w-full rounded-xl border border-emerald-100 bg-white px-4 py-3 text-sm text-emerald-950"
               />
             </div>
 
-            <label className="mt-4 flex items-center gap-2 text-sm">
+            <label className="mt-4 flex items-center gap-2 text-sm text-emerald-900/80">
               <input
                 type="checkbox"
                 checked={isAnonymous}
@@ -434,13 +512,17 @@ export function DonationCheckoutForm({
 
             <Button
               type="submit"
-              className={errorMessage ? "mt-4 w-full" : "w-full"}
+              className={errorMessage ? "mt-4 w-full rounded-2xl bg-emerald-900 hover:bg-emerald-800" : "w-full rounded-2xl bg-emerald-900 hover:bg-emerald-800"}
               size="lg"
               disabled={isSubmitting}
             >
               {isSubmitting
-                ? "Membuat Instruksi Transfer..."
-                : "Buat Instruksi Transfer"}
+                ? paymentMethod === "qris"
+                  ? "Menyiapkan QRIS..."
+                  : "Membuat Instruksi Transfer..."
+                : paymentMethod === "qris"
+                  ? "Lanjut ke Pembayaran QRIS"
+                  : "Buat Instruksi Transfer"}
             </Button>
           </div>
         </div>

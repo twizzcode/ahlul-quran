@@ -2,12 +2,7 @@ import { getPublicArticleType } from "@/lib/content/public-articles";
 
 type LinkedArticleLike = {
   slug: string;
-  title: string;
-  tags: string[];
-  category: {
-    name: string;
-    slug: string;
-  } | null;
+  type: "berita" | "artikel";
 };
 
 export function isDonationCampaignUpdateSchemaMismatchError(error: unknown) {

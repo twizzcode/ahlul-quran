@@ -85,6 +85,13 @@
       "when": 1780459200000,
       "tag": "0011_link_gallery_to_campaigns",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1780023370985,
+      "tag": "0012_loving_juggernaut",
+      "breakpoints": true
     }
   ]
 }

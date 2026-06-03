@@ -75,6 +75,8 @@ export type MasjidProfileData = {
   tiktok: string;
   qrisEnabled: boolean;
   qrisImageUrl: string;
+  qrisIconUrl: string;
+  qrisHolderName: string;
   donationBankAccounts: DonationBankAccount[];
   bankName: string;
   bankAccount: string;
@@ -262,6 +264,8 @@ export const DEFAULT_MASJID_PROFILE: MasjidProfileData = {
   tiktok: "",
   qrisEnabled: true,
   qrisImageUrl: "",
+  qrisIconUrl: "",
+  qrisHolderName: "",
   donationBankAccounts: [
     {
       bankName: "",
@@ -672,6 +676,14 @@ export function normalizeMasjidProfile(
     qrisImageUrl: readString(
       source.qrisImageUrl,
       DEFAULT_MASJID_PROFILE.qrisImageUrl,
+    ),
+    qrisIconUrl: readString(
+      source.qrisIconUrl,
+      DEFAULT_MASJID_PROFILE.qrisIconUrl,
+    ),
+    qrisHolderName: readString(
+      source.qrisHolderName,
+      DEFAULT_MASJID_PROFILE.qrisHolderName,
     ),
     donationBankAccounts: normalizeDonationBankAccounts(
       source.donationBankAccounts,

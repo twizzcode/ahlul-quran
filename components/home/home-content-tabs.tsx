@@ -18,7 +18,7 @@ type HomeContentTabsProps = {
   items: HomeContentTabItem[];
 };
 
-const MAX_ITEMS = 3;
+const MAX_ITEMS = 4;
 
 export function HomeContentTabs({ items }: HomeContentTabsProps) {
   const activeItems = items.slice(0, MAX_ITEMS);
@@ -45,7 +45,7 @@ export function HomeContentTabs({ items }: HomeContentTabsProps) {
           </Link>
         </div>
 
-        <div className="space-y-4 xl:grid xl:grid-cols-3 xl:gap-6 xl:space-y-0">
+        <div className="space-y-4 xl:grid xl:grid-cols-2 xl:gap-6 xl:space-y-0">
           {activeItems.length === 0 ? (
             <div className="col-span-full py-8 text-center text-emerald-900/65">
               Belum ada berita atau artikel yang dipublikasikan.
@@ -55,9 +55,12 @@ export function HomeContentTabs({ items }: HomeContentTabsProps) {
               <Link
                 key={item.id}
                 href={item.type === "berita" ? `/berita/${item.slug}` : `/artikel/${item.slug}`}
-                className="group flex items-start gap-4 rounded-[22px] border border-emerald-100 bg-white p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_44px_rgba(15,23,42,0.06)] xl:h-full"
+                className="group flex items-start overflow-hidden rounded-[22px] border border-emerald-200 bg-white transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
               >
-                <div className="relative aspect-[4/3] w-40 shrink-0 overflow-hidden rounded-[16px] bg-emerald-50">
+                <div className="relative aspect-[4/3] w-44 shrink-0 overflow-hidden bg-emerald-50 xl:w-52">
+                  <div className="absolute left-3 top-3 z-10 inline-flex rounded-full bg-white/92 px-2 py-0.5 text-[9px] font-medium text-emerald-950 shadow-sm backdrop-blur">
+                    {item.type === "berita" ? "Berita" : "Artikel"}
+                  </div>
                   {item.coverImage ? (
                     <Image
                       src={item.coverImage}
@@ -72,7 +75,7 @@ export function HomeContentTabs({ items }: HomeContentTabsProps) {
                   )}
                 </div>
 
-                <div className="min-w-0 flex flex-1 self-stretch flex-col justify-between">
+                <div className="min-w-0 flex flex-1 self-stretch flex-col justify-between p-4">
                   <div>
                     <h3 className="line-clamp-2 text-base font-bold leading-tight capitalize text-slate-900">
                       {item.title}

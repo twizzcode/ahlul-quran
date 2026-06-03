@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Calendar, Clock, Eye, User } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, User } from "lucide-react";
 import { ArticleDetailSidebar } from "@/components/content/article-detail-sidebar";
+import { ArticleViewCount } from "@/components/content/article-view-count";
 import dbQuery from "@/lib/data/db-query";
 import {
   getPublicArticleType,
-  getVisibleArticleTags,
   publicArticleSelect,
   type PublicArticleRecord,
 } from "@/lib/content/public-articles";
+import { getMasjidProfileData } from "@/lib/masjid/masjid-profile.server";
 import { formatDate, truncateText } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,7 +66,6 @@ export async function generateMetadata({ params }: ArtikelDetailPageProps): Prom
   return {
     title: `${article.title} | Masjid`,
     description,
-    keywords: getVisibleArticleTags(article.tags),
     alternates: {
       canonical: articleUrl,
     },
@@ -93,22 +93,29 @@ export default async function ArtikelDetailPage({ params }: ArtikelDetailPagePro
   const readingTime = getReadingTime(article.content);
   const isHtmlContent = isProbablyHtml(article.content);
   const safeHtml = sanitizeArticleHtml(article.content);
-  const relatedArticlesRaw = await dbQuery.article.findMany({
-    where: {
-      status: "PUBLISHED",
-      NOT: {
-        id: article.id,
+  const [profile, relatedArticlesRaw, activeCampaigns] = await Promise.all([
+    getMasjidProfileData(),
+    dbQuery.article.findMany({
+      where: {
+        status: "PUBLISHED",
+        NOT: {
+          id: article.id,
+        },
       },
-    },
-    select: publicArticleSelect,
-    orderBy: {
-      publishedAt: "desc",
-    },
-    take: 12,
-  });
+      select: publicArticleSelect,
+      orderBy: {
+        publishedAt: "desc",
+      },
+      take: 12,
+    }),
+    dbQuery.donationCampaign.findMany({
+      where: { isActive: true },
+      include: { donations: { take: 1000 } },
+    }),
+  ]);
   const relatedArticles = relatedArticlesRaw
     .filter((item) => getPublicArticleType(item) === "artikel")
-    .slice(0, 4)
+    .slice(0, 3)
     .map((item) => ({
       id: item.id,
       title: item.title,
@@ -118,12 +125,46 @@ export default async function ArtikelDetailPage({ params }: ArtikelDetailPagePro
       categoryName: item.category?.name ?? null,
       publishedAt: (item.publishedAt ?? item.createdAt).toISOString(),
     }));
+  const featuredCampaign =
+    activeCampaigns.length > 0
+      ? activeCampaigns[Math.floor(Math.random() * activeCampaigns.length)]
+      : null;
+  const collectedAmount =
+    featuredCampaign?.donations.reduce((sum, donation) => sum + donation.amount, 0) ?? 0;
+  const progress =
+    featuredCampaign && featuredCampaign.targetAmount > 0
+      ? Math.min(100, Math.round((collectedAmount / featuredCampaign.targetAmount) * 100))
+      : undefined;
+  const quickLinks = [
+    {
+      title: "Profil Masjid",
+      href: "/profil",
+      description: `Lihat profil, arah pembangunan, dan struktur ${profile.name}.`,
+    },
+    {
+      title: "Halaman Berita",
+      href: "/berita",
+      description: "Baca update terbaru kegiatan, pengumuman, dan kabar lapangan.",
+    },
+    {
+      title: "Halaman Artikel",
+      href: "/artikel",
+      description: "Jelajahi artikel lain yang masih relevan dengan topik ini.",
+    },
+  ];
 
   return (
     <article className="mx-auto w-full max-w-7xl px-4 md:px-0 pb-12 pt-[calc(var(--home-nav-height)+1rem)]">
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-10">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-14">
         <div>
           <header className="mb-8">
+            <Button variant="ghost" asChild className="mb-6 -ml-3">
+              <Link href="/artikel">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Kembali ke Artikel
+              </Link>
+            </Button>
+
             <h1 className="text-3xl font-bold tracking-tight capitalize text-emerald-950 md:text-4xl">
               {article.title}
             </h1>
@@ -155,10 +196,7 @@ export default async function ArtikelDetailPage({ params }: ArtikelDetailPagePro
                 <User className="h-4 w-4" />
                 {article.author.name}
               </span>
-              <span className="flex items-center gap-2">
-                <Eye className="h-4 w-4" />
-                {article.viewCount} kali dilihat
-              </span>
+              <ArticleViewCount slug={article.slug} initialCount={article.viewCount} />
               <span className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 {formatDate(publishedDate)}
@@ -182,21 +220,24 @@ export default async function ArtikelDetailPage({ params }: ArtikelDetailPagePro
                 ))
             )}
           </div>
-
-          <footer className="mt-12 pt-8 border-t">
-            <Button variant="outline" asChild>
-              <Link href="/artikel">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Lihat Artikel Lainnya
-              </Link>
-            </Button>
-          </footer>
         </div>
 
         <ArticleDetailSidebar
-          title="Artikel Lainnya"
-          href="/artikel"
-          hrefLabel="Lihat artikel terkini"
+          masjidTitle={profile.movementName.trim() || "Masjid Semilyar Tangan"}
+          masjidSubtitle={profile.name}
+          quickLinks={quickLinks}
+          relatedTitle="Artikel Lainnya"
+          relatedHref="/artikel"
+          relatedHrefLabel="Lihat artikel terkini"
+          donationCta={{
+            title: featuredCampaign?.title ?? "Dukung Program Masjid",
+            description: featuredCampaign?.description ?? "Dukung program masjid melalui halaman donasi.",
+            href: featuredCampaign ? `/donasi/${featuredCampaign.slug}` : "/donasi",
+            hrefLabel: featuredCampaign ? "Lihat campaign terkait" : "Buka halaman donasi",
+            progress,
+            collectedAmount,
+            targetAmount: featuredCampaign?.targetAmount,
+          }}
           items={relatedArticles}
         />
       </div>

@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { ArticleEditorForm } from "@/components/content/article-editor-form";
-import { getExplicitArticleType } from "@/lib/content/public-articles";
 import { db } from "@/src";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +20,8 @@ export default async function DashboardArtikelEditPage({ params }: { params: Pro
         excerpt: true,
         content: true,
         coverImage: true,
+        type: true,
         donationCampaignId: true,
-        tags: true,
       },
     }),
   ]);
@@ -36,7 +35,7 @@ export default async function DashboardArtikelEditPage({ params }: { params: Pro
       mode="edit"
       campaigns={campaigns}
       initialArticle={article}
-      initialType={getExplicitArticleType(article.tags) || "artikel"}
+      initialType={article.type}
     />
   );
 }

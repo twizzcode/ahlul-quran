@@ -2,11 +2,13 @@
 
 import type { ReactNode } from "react";
 import { FormEvent, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Plus, Save, Trash2 } from "lucide-react";
+import { ChevronDown, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { R2ImageUploadField } from "@/components/shared/r2-image-upload-field";
 import { Checkbox } from "@/components/ui/checkbox";
+import { BANK_OPTIONS, getBankOptionByLabel, getBankOptionByValue } from "@/lib/donation/bank-options";
 import type {
   CommitteeItem,
   DonationBankAccount,
@@ -113,6 +115,8 @@ export function DashboardMasjidProfileForm({
     tiktok: initialData.tiktok,
     qrisEnabled: initialData.qrisEnabled,
     qrisImageUrl: initialData.qrisImageUrl,
+    qrisIconUrl: initialData.qrisIconUrl,
+    qrisHolderName: initialData.qrisHolderName,
     donationBankAccounts: initialData.donationBankAccounts,
     bankName: initialData.bankName,
     bankAccount: initialData.bankAccount,
@@ -212,6 +216,22 @@ export function DashboardMasjidProfileForm({
       "donationBankAccounts",
       form.donationBankAccounts.map((item, itemIndex) =>
         itemIndex === index ? { ...item, [key]: value } : item,
+      ),
+    );
+  }
+
+  function updateDonationBankSelection(index: number, value: string) {
+    const option = getBankOptionByValue(value);
+    updateField(
+      "donationBankAccounts",
+      form.donationBankAccounts.map((item, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...item,
+              bankName: option?.label ?? "",
+              logoUrl: option?.logoUrl ?? "",
+            }
+          : item,
       ),
     );
   }
@@ -579,32 +599,12 @@ export function DashboardMasjidProfileForm({
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-10 gap-2 rounded-lg px-4"
-                onClick={() =>
-                  updateField("donationBankAccounts", [
-                    ...form.donationBankAccounts,
-                    {
-                      bankName: "",
-                      bankAccount: "",
-                      bankHolder: "",
-                      logoUrl: "",
-                      isActive: true,
-                    },
-                  ])
-                }
-              >
-                <Plus className="h-4 w-4" />
-                Tambah Bank
-              </Button>
               <SectionSaveButton isSaving={isSaving} isDirty={isDirty} />
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-              <div className="space-y-4 rounded-2xl border border-border/80 bg-muted/15 p-4">
+            <div className="space-y-6">
+              <section className="space-y-4">
                 <div className="space-y-1">
                   <h3 className="text-base font-semibold">QRIS</h3>
                   <p className="text-sm text-muted-foreground">
@@ -612,47 +612,92 @@ export function DashboardMasjidProfileForm({
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-background px-3 py-3">
-                  <Checkbox
-                    checked={form.qrisEnabled}
-                    onCheckedChange={(checked) =>
-                      updateField("qrisEnabled", checked === true)
+                <div className="rounded-2xl border border-border/80 bg-muted/15 p-4">
+                  <div className="grid gap-4 xl:grid-cols-[180px_minmax(0,1fr)] xl:items-stretch">
+                    <div className="overflow-hidden rounded-2xl border border-border/80 bg-muted/15">
+                      <div className="relative h-full min-h-[220px] w-full bg-white">
+                        <Image
+                          src={form.logoUrl || "/logo.webp"}
+                          alt="Logo Masjid untuk QRIS"
+                          fill
+                          className="object-contain p-5"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid h-full gap-4">
+                      <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-background px-3 py-3">
+                        <Checkbox
+                          checked={form.qrisEnabled}
+                          onCheckedChange={(checked) =>
+                            updateField("qrisEnabled", checked === true)
+                          }
+                          id="qris-enabled"
+                        />
+                        <label htmlFor="qris-enabled" className="text-sm font-medium">
+                          Aktifkan QRIS
+                        </label>
+                      </div>
+
+                      <Field label="Atas Nama">
+                        <Input
+                          value={form.qrisHolderName}
+                          onChange={(event) => updateField("qrisHolderName", event.target.value)}
+                          placeholder="XXX XXX XXX"
+                          className="h-11"
+                        />
+                      </Field>
+
+                      <R2ImageUploadField
+                        value={form.qrisImageUrl}
+                        folder={UPLOAD_FOLDERS.profileDonationQris}
+                        onChange={(value) => updateField("qrisImageUrl", value)}
+                        label="Gambar QRIS"
+                        description="Upload gambar QRIS."
+                        naturalPreview
+                        previewFrameClassName="min-h-[220px]"
+                        emptyStateClassName="min-h-[220px]"
+                        onError={(message) => {
+                          setErrorMessage(message);
+                          toast.error(message);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <h3 className="text-base font-semibold">Rekening Bank</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Tambahkan rekening bank beserta logo dan status aktifnya.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 gap-2 rounded-lg px-4"
+                    onClick={() =>
+                      updateField("donationBankAccounts", [
+                        ...form.donationBankAccounts,
+                        {
+                          bankName: "",
+                          bankAccount: "",
+                          bankHolder: "",
+                          logoUrl: "",
+                          isActive: true,
+                        },
+                      ])
                     }
-                    id="qris-enabled"
-                  />
-                  <label htmlFor="qris-enabled" className="text-sm font-medium">
-                    Aktifkan QRIS
-                  </label>
+                  >
+                    <Plus className="h-4 w-4" />
+                    Tambah Bank
+                  </Button>
                 </div>
 
-                <R2ImageUploadField
-                  value={form.qrisImageUrl}
-                  folder={UPLOAD_FOLDERS.profileDonationQris}
-                  onChange={(value) => updateField("qrisImageUrl", value)}
-                  description="Upload gambar QRIS."
-                  naturalPreview
-                  previewFrameClassName="min-h-[320px]"
-                  emptyStateClassName="min-h-[260px]"
-                  onError={(message) => {
-                    setErrorMessage(message);
-                    toast.error(message);
-                  }}
-                />
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <h3 className="text-base font-semibold">Rekening Bank</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Tambahkan rekening bank beserta logo dan status aktifnya.
-                  </p>
-                </div>
-
-                <div
-                  className={`grid gap-4 ${
-                    form.donationBankAccounts.length > 1 ? "2xl:grid-cols-2" : "grid-cols-1"
-                  }`}
-                >
+                <div className="grid gap-4 2xl:grid-cols-2">
               {form.donationBankAccounts.map((item, index) => (
                 (() => {
                   const isBankReady = isDonationBankAccountReady(item);
@@ -661,6 +706,61 @@ export function DashboardMasjidProfileForm({
                 <DynamicItemCard
                   key={`donation-bank-${index}`}
                   title={`Bank ${index + 1}`}
+                  hideRemoveButton
+                  headerActions={
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-background px-3 py-2">
+                        <Checkbox
+                          checked={isBankReady && item.isActive}
+                          onCheckedChange={(checked) =>
+                            isBankReady
+                              ? updateDonationBankAccount(
+                                  index,
+                                  "isActive",
+                                  checked === true,
+                                )
+                              : toast.error(
+                                  "Isi nama bank, nomor rekening, dan atas nama terlebih dahulu.",
+                                )
+                          }
+                          id={`bank-active-${index}`}
+                        />
+                        <label
+                          htmlFor={`bank-active-${index}`}
+                          className={`text-sm font-medium ${!isBankReady ? "text-muted-foreground" : ""}`}
+                        >
+                          Aktifkan
+                        </label>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="gap-2 text-red-600 hover:bg-red-50 hover:text-red-700"
+                        onClick={() =>
+                          updateField(
+                            "donationBankAccounts",
+                            form.donationBankAccounts.length > 1
+                              ? form.donationBankAccounts.filter(
+                                  (_, itemIndex) => itemIndex !== index,
+                                )
+                              : [
+                                  {
+                                    bankName: "",
+                                    bankAccount: "",
+                                    bankHolder: "",
+                                    logoUrl: "",
+                                    isActive: true,
+                                  },
+                                ],
+                          )
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Hapus
+                      </Button>
+                    </div>
+                  }
                   onRemove={() =>
                     updateField(
                       "donationBankAccounts",
@@ -680,91 +780,78 @@ export function DashboardMasjidProfileForm({
                     )
                   }
                 >
-                  <div className="grid gap-4 xl:grid-cols-[180px_minmax(0,1fr)]">
-                    <R2ImageUploadField
-                      value={item.logoUrl}
-                      folder={UPLOAD_FOLDERS.profileDonationBanks}
-                      onChange={(value) =>
-                        updateDonationBankAccount(index, "logoUrl", value)
-                      }
-                      label="Logo Bank"
-                      description="Upload logo atau visual bank."
-                      className="max-w-[180px]"
-                      previewFrameClassName="aspect-square"
-                      previewImageClassName="object-contain p-3"
-                      emptyStateClassName="aspect-square min-h-[180px] px-4"
-                      onError={(message) => {
-                        setErrorMessage(message);
-                        toast.error(message);
-                      }}
-                    />
+                  <div className="grid gap-4 xl:grid-cols-[180px_minmax(0,1fr)] xl:items-start">
+                    <div className="overflow-hidden rounded-2xl border border-border/80 bg-muted/15">
+                      <div className="relative aspect-square w-full bg-white">
+                        {item.logoUrl ? (
+                          <Image
+                            src={item.logoUrl}
+                            alt={item.bankName || `Logo Bank ${index + 1}`}
+                            fill
+                            className="object-contain p-5"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
+                            Pilih bank untuk menampilkan logo.
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
                     <div className="grid gap-4">
-                      <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-background px-3 py-3">
-                        <Checkbox
-                          checked={isBankReady && item.isActive}
-                          disabled={!isBankReady}
-                          onCheckedChange={(checked) =>
-                            updateDonationBankAccount(
-                              index,
-                              "isActive",
-                              checked === true,
-                            )
-                          }
-                          id={`bank-active-${index}`}
-                        />
-                        <label
-                          htmlFor={`bank-active-${index}`}
-                          className={`text-sm font-medium ${!isBankReady ? "text-muted-foreground" : ""}`}
-                        >
-                          Aktifkan rekening ini
-                        </label>
-                      </div>
-                      {!isBankReady ? (
-                        <p className="text-xs text-muted-foreground">
-                          Isi nama bank, nomor rekening, dan atas nama dulu untuk mengaktifkan rekening.
-                        </p>
-                      ) : null}
-
                       <Field label="Nama Bank">
-                        <Input
-                          value={item.bankName}
-                          onChange={(event) =>
-                            updateDonationBankAccount(
-                              index,
-                              "bankName",
-                              event.target.value,
-                            )
-                          }
-                          placeholder="Bank Syariah Indonesia"
-                        />
+                        <div className="relative">
+                          <select
+                            value={getBankOptionByLabel(item.bankName)?.value ?? ""}
+                            onChange={(event) =>
+                              updateDonationBankSelection(index, event.target.value)
+                            }
+                            className="flex h-11 w-full appearance-none items-center justify-between rounded-xl border border-input bg-background px-4 pr-10 text-sm shadow-xs outline-none transition focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40"
+                          >
+                            <option value="">Pilih bank</option>
+                            {BANK_OPTIONS.map((bank) => (
+                              <option key={bank.value} value={bank.value}>
+                                {bank.label}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        </div>
                       </Field>
-                      <Field label="Nomor Rekening">
-                        <Input
-                          value={item.bankAccount}
-                          onChange={(event) =>
-                            updateDonationBankAccount(
-                              index,
-                              "bankAccount",
-                              event.target.value,
+                      <div className="flex flex-col gap-4 xl:flex-row">
+                        <div className="flex-1">
+                          <Field label="Nomor Rekening">
+                            <Input
+                              value={item.bankAccount}
+                              onChange={(event) =>
+                                updateDonationBankAccount(
+                                  index,
+                                  "bankAccount",
+                                  event.target.value,
                             )
-                          }
-                          placeholder="7123456789"
-                        />
-                      </Field>
-                      <Field label="Atas Nama">
-                        <Input
-                          value={item.bankHolder}
-                          onChange={(event) =>
-                            updateDonationBankAccount(
-                              index,
-                              "bankHolder",
-                              event.target.value,
-                            )
-                          }
-                          placeholder="Yayasan Ahlul Qur'an"
-                        />
-                      </Field>
+                              }
+                              placeholder="1234567890"
+                              className="h-11"
+                            />
+                          </Field>
+                        </div>
+                        <div className="flex-1">
+                          <Field label="Atas Nama">
+                            <Input
+                              value={item.bankHolder}
+                              onChange={(event) =>
+                                updateDonationBankAccount(
+                                  index,
+                                  "bankHolder",
+                                  event.target.value,
+                                )
+                              }
+                              placeholder="XXX XXX XXX"
+                              className="h-11"
+                            />
+                          </Field>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </DynamicItemCard>
@@ -772,7 +859,7 @@ export function DashboardMasjidProfileForm({
                 })()
               ))}
                 </div>
-              </div>
+              </section>
             </div>
           </CardContent>
         </Card>
@@ -878,25 +965,32 @@ function DynamicItemCard({
   title,
   children,
   onRemove,
+  hideRemoveButton = false,
+  headerActions,
 }: {
   title: string;
   children: ReactNode;
   onRemove: () => void;
+  hideRemoveButton?: boolean;
+  headerActions?: ReactNode;
 }) {
   return (
     <div className="rounded-xl border border-border/80 bg-muted/20 p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold">{title}</h3>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="gap-2 text-red-600 hover:bg-red-50 hover:text-red-700"
-          onClick={onRemove}
-        >
-          <Trash2 className="h-4 w-4" />
-          Hapus
-        </Button>
+        {headerActions ?? null}
+        {!hideRemoveButton ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="gap-2 text-red-600 hover:bg-red-50 hover:text-red-700"
+            onClick={onRemove}
+          >
+            <Trash2 className="h-4 w-4" />
+            Hapus
+          </Button>
+        ) : null}
       </div>
       <div className="grid gap-4">{children}</div>
     </div>

@@ -38,7 +38,7 @@ import { ADMIN_NAV_ITEMS, ADMIN_ROUTE_PATHS, getAdminAliasPath } from "@/lib/rou
 
 const iconMap = {
   Dashboard: Home,
-  Artikel: BookOpen,
+  "Berita dan Artikel": BookOpen,
   Donasi: Heart,
   Kampanye: Flag,
   Galeri: ImageIcon,
@@ -73,7 +73,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, [isProfileOpen])
 
   return (
-    <Sidebar collapsible="icon" variant="sidebar" {...props}>
+    <Sidebar collapsible="none" variant="sidebar" {...props}>
       <SidebarHeader className="border-b border-white/10 px-2 pb-4">
         <div className="flex items-center gap-3 rounded-xl px-3 py-3">
           <div className="flex size-10 items-center justify-center overflow-hidden bg-white ring-1 ring-white/10">
@@ -106,7 +106,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild
-                    tooltip={item.title}
                     isActive={isActive(item.url)}
                     className="rounded-xl px-3 py-2.5 text-emerald-50/85 hover:bg-white/6 hover:text-white data-[active=true]:bg-emerald-500/20 data-[active=true]:text-white"
                   >
@@ -142,7 +141,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton
-                          tooltip={item.title}
                           isActive={isProfileOpen}
                           className="rounded-xl px-3 py-2.5 text-emerald-50/85 hover:bg-white/6 hover:text-white data-[active=true]:bg-emerald-500/20 data-[active=true]:text-white"
                         >
@@ -173,7 +171,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild
-                    tooltip={item.title}
                     isActive={isActive(item.url)}
                     className="rounded-xl px-3 py-2.5 text-emerald-50/85 hover:bg-white/6 hover:text-white data-[active=true]:bg-emerald-500/20 data-[active=true]:text-white"
                   >
@@ -194,7 +191,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                tooltip="Lihat Website"
                 className="rounded-xl border border-white/12 px-3 py-2.5 text-emerald-50 hover:bg-white/6 hover:text-white"
               >
                 <a href="/" target="_blank" rel="noopener noreferrer">

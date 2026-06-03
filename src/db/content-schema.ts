@@ -19,6 +19,8 @@ export const articleStatus = pgEnum("article_status", [
   "ARCHIVED",
 ]);
 
+export const articleType = pgEnum("article_type", ["berita", "artikel"]);
+
 export const eventStatus = pgEnum("event_status", [
   "UPCOMING",
   "ONGOING",
@@ -58,6 +60,8 @@ export const masjidProfile = pgTable("masjid_profile", {
   tiktok: text("tiktok"),
   qrisEnabled: boolean("qris_enabled").default(true).notNull(),
   qrisImageUrl: text("qris_image_url"),
+  qrisIconUrl: text("qris_icon_url"),
+  qrisHolderName: text("qris_holder_name"),
   donationBankAccounts: jsonb("donation_bank_accounts"),
   bankName: text("bank_name"),
   bankAccount: text("bank_account"),
@@ -133,6 +137,7 @@ export const article = pgTable(
     excerpt: text("excerpt"),
     content: text("content").notNull(),
     coverImage: text("cover_image"),
+    type: articleType("type").default("artikel").notNull(),
     status: articleStatus("status").default("DRAFT").notNull(),
     publishedAt: timestamp("published_at"),
     authorId: text("author_id")
@@ -143,7 +148,6 @@ export const article = pgTable(
       () => donationCampaign.id,
       { onDelete: "set null" },
     ),
-    tags: text("tags").array().default([]).notNull(),
     viewCount: integer("view_count").default(0).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
@@ -153,6 +157,7 @@ export const article = pgTable(
   },
   (table) => [
     index("article_slug_idx").on(table.slug),
+    index("article_type_idx").on(table.type),
     index("article_status_idx").on(table.status),
     index("article_donationCampaignId_idx").on(table.donationCampaignId),
   ],

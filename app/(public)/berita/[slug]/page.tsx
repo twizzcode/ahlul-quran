@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, Calendar, Clock, Eye, User } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, User } from "lucide-react";
 import { ArticleDetailSidebar } from "@/components/content/article-detail-sidebar";
+import { ArticleViewCount } from "@/components/content/article-view-count";
 import dbQuery from "@/lib/data/db-query";
 import {
   getPublicArticleType,
-  getVisibleArticleTags,
   publicArticleSelect,
   type PublicArticleRecord,
 } from "@/lib/content/public-articles";
+import { getMasjidProfileData } from "@/lib/masjid/masjid-profile.server";
 import { formatDate, truncateText } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,7 +66,6 @@ export async function generateMetadata({ params }: BeritaDetailPageProps): Promi
   return {
     title: `${article.title} | Berita`,
     description,
-    keywords: getVisibleArticleTags(article.tags),
     alternates: {
       canonical: articleUrl,
     },
@@ -93,22 +93,29 @@ export default async function BeritaDetailPage({ params }: BeritaDetailPageProps
   const readingTime = getReadingTime(article.content);
   const isHtmlContent = isProbablyHtml(article.content);
   const safeHtml = sanitizeArticleHtml(article.content);
-  const relatedArticlesRaw = await dbQuery.article.findMany({
-    where: {
-      status: "PUBLISHED",
-      NOT: {
-        id: article.id,
+  const [profile, relatedArticlesRaw, activeCampaigns] = await Promise.all([
+    getMasjidProfileData(),
+    dbQuery.article.findMany({
+      where: {
+        status: "PUBLISHED",
+        NOT: {
+          id: article.id,
+        },
       },
-    },
-    select: publicArticleSelect,
-    orderBy: {
-      publishedAt: "desc",
-    },
-    take: 12,
-  });
+      select: publicArticleSelect,
+      orderBy: {
+        publishedAt: "desc",
+      },
+      take: 12,
+    }),
+    dbQuery.donationCampaign.findMany({
+      where: { isActive: true },
+      include: { donations: { take: 1000 } },
+    }),
+  ]);
   const relatedArticles = relatedArticlesRaw
     .filter((item) => getPublicArticleType(item) === "berita")
-    .slice(0, 4)
+    .slice(0, 3)
     .map((item) => ({
       id: item.id,
       title: item.title,
@@ -118,12 +125,46 @@ export default async function BeritaDetailPage({ params }: BeritaDetailPageProps
       categoryName: item.category?.name ?? null,
       publishedAt: (item.publishedAt ?? item.createdAt).toISOString(),
     }));
+  const featuredCampaign =
+    activeCampaigns.length > 0
+      ? activeCampaigns[Math.floor(Math.random() * activeCampaigns.length)]
+      : null;
+  const collectedAmount =
+    featuredCampaign?.donations.reduce((sum, donation) => sum + donation.amount, 0) ?? 0;
+  const progress =
+    featuredCampaign && featuredCampaign.targetAmount > 0
+      ? Math.min(100, Math.round((collectedAmount / featuredCampaign.targetAmount) * 100))
+      : undefined;
+  const quickLinks = [
+    {
+      title: "Profil Masjid",
+      href: "/profil",
+      description: `Kenali visi, struktur, dan arah gerak ${profile.name}.`,
+    },
+    {
+      title: "Halaman Berita",
+      href: "/berita",
+      description: "Lihat kabar terbaru, pengumuman, dan update kegiatan masjid.",
+    },
+    {
+      title: "Halaman Artikel",
+      href: "/artikel",
+      description: "Buka artikel kajian, materi pembinaan, dan tulisan pilihan.",
+    },
+  ];
 
   return (
     <article className="mx-auto w-full max-w-7xl px-4 pb-12 pt-[calc(var(--home-nav-height)+1rem)] md:px-0">
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-10">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-14">
         <div>
           <header className="mb-8">
+            <Button variant="ghost" asChild className="mb-6 -ml-3">
+              <Link href="/berita">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Kembali ke Berita
+              </Link>
+            </Button>
+
             <h1 className="text-3xl font-bold tracking-tight capitalize text-emerald-950 md:text-4xl">
               {article.title}
             </h1>
@@ -155,10 +196,7 @@ export default async function BeritaDetailPage({ params }: BeritaDetailPageProps
                 <User className="h-4 w-4" />
                 {article.author.name}
               </span>
-              <span className="flex items-center gap-2">
-                <Eye className="h-4 w-4" />
-                {article.viewCount} kali dilihat
-              </span>
+              <ArticleViewCount slug={article.slug} initialCount={article.viewCount} />
               <span className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 {formatDate(publishedDate)}
@@ -182,34 +220,24 @@ export default async function BeritaDetailPage({ params }: BeritaDetailPageProps
                 ))
             )}
           </div>
-
-          {article.donationCampaign ? (
-            <section className="mt-10 border-t border-emerald-100 pt-6">
-              <p className="text-sm text-slate-500">Campaign terkait</p>
-              <Link
-                href={`/donasi/${article.donationCampaign.slug}`}
-                className="mt-2 inline-flex items-center gap-2 text-base font-semibold text-emerald-800 transition hover:text-emerald-950"
-              >
-                {article.donationCampaign.title}
-                <ArrowUpRight className="h-4 w-4" />
-              </Link>
-            </section>
-          ) : null}
-
-          <footer className="mt-12 border-t pt-8">
-            <Button variant="outline" asChild>
-              <Link href="/berita">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Lihat Berita Lainnya
-              </Link>
-            </Button>
-          </footer>
         </div>
 
         <ArticleDetailSidebar
-          title="Berita Lainnya"
-          href="/berita"
-          hrefLabel="Lihat berita terkini"
+          masjidTitle={profile.movementName.trim() || "Masjid Semilyar Tangan"}
+          masjidSubtitle={profile.name}
+          quickLinks={quickLinks}
+          relatedTitle="Berita Lainnya"
+          relatedHref="/berita"
+          relatedHrefLabel="Lihat berita terkini"
+          donationCta={{
+            title: featuredCampaign?.title ?? "Dukung Campaign Masjid",
+            description: featuredCampaign?.description ?? "Dukung program masjid melalui halaman donasi.",
+            href: featuredCampaign ? `/donasi/${featuredCampaign.slug}` : "/donasi",
+            hrefLabel: featuredCampaign ? "Lihat campaign terkait" : "Buka halaman donasi",
+            progress,
+            collectedAmount,
+            targetAmount: featuredCampaign?.targetAmount,
+          }}
           items={relatedArticles}
         />
       </div>

@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { eq } from "drizzle-orm";
 import { HomeLayoutShell } from "@/components/home/home-layout-shell";
 import { auth } from "@/lib/auth/auth";
 import dbQuery from "@/lib/data/db-query";
 import { getPublicArticleType, publicArticleSelect } from "@/lib/content/public-articles";
 import { stripHtmlTags } from "@/lib/content/article-content";
+import { isDashboardRole } from "@/lib/auth/user-roles";
 import { getMasjidProfileData } from "@/lib/masjid/masjid-profile.server";
+import { db } from "@/src";
+import { user as userTable } from "@/src/db/schema";
 import { formatDate, truncateText } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -29,6 +33,8 @@ export default async function HomeLayout({
   children: React.ReactNode;
 }) {
   const headerStore = await headers();
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? "lvh.me:3000";
+  const protocol = headerStore.get("x-forwarded-proto") ?? "http";
   const [profile, session, latestArticles] = await Promise.all([
     getMasjidProfileData(),
     auth.api.getSession({
@@ -41,11 +47,23 @@ export default async function HomeLayout({
       take: 6,
     }),
   ]);
+  const dbUser = session?.user
+    ? await db.query.user.findFirst({
+        where: eq(userTable.id, session.user.id),
+        columns: {
+          role: true,
+        },
+      })
+    : null;
+  const port = host.includes(":") ? `:${host.split(":")[1]}` : "";
+  const adminUrl = `${protocol}://admin.lvh.me${port}`;
   const user = session?.user
     ? {
         name: session.user.name,
         email: session.user.email,
         image: session.user.image,
+        canOpenAdmin: isDashboardRole(dbUser?.role),
+        adminUrl,
       }
     : null;
   const featuredNewsArticle = latestArticles.find(

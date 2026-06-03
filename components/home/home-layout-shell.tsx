@@ -15,6 +15,8 @@ type HomeLayoutShellProps = {
     name: string;
     email: string;
     image?: string | null;
+    canOpenAdmin?: boolean;
+    adminUrl?: string | null;
   } | null;
   featuredNews: {
     title: string;
@@ -38,7 +40,7 @@ export function HomeLayoutShell({ children, profile, user, featuredNews }: HomeL
         <PageContentMotion>{children}</PageContentMotion>
       </main>
       {!hideChrome && <SiteFooter profile={profile} />}
-      {!hideMobileDock && <HomeMobileDock />}
+      {!hideMobileDock && <HomeMobileDock user={user} />}
     </div>
   );
 }

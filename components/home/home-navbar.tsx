@@ -3,8 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { usePathname } from "next/navigation";
-import { BookOpenText, ChevronDown, HandHeart, LogIn, Newspaper } from "lucide-react";
+import { BookOpenText, ChevronDown, HandHeart, Newspaper } from "lucide-react";
 import {
   MobileNav,
   MobileNavHeader,
@@ -12,12 +11,13 @@ import {
   Navbar,
 } from "@/components/ui/resizable-navbar";
 import { Button } from "@/components/ui/button";
+import { AccountMenu } from "@/components/home/account-menu";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/auth/auth-client";
 import type { MasjidProfileData } from "@/lib/masjid/masjid-profile";
 
 const navItems = [
-  { name: "Program", link: "/kegiatan" },
+  { name: "Program", link: "/program" },
   { name: "Donasi", link: "/donasi" },
   { name: "Galeri", link: "/galeri" },
 ];
@@ -98,6 +98,8 @@ type NavbarUser = {
   name: string;
   email: string;
   image?: string | null;
+  canOpenAdmin?: boolean;
+  adminUrl?: string | null;
 };
 
 type FeaturedNews = {
@@ -118,16 +120,17 @@ export function HomeNavbar({
   featuredNews: FeaturedNews | null;
 }) {
   const { data: session } = useSession();
-  const user = session?.user ?? initialUser;
+  const user = session?.user
+    ? {
+        name: session.user.name,
+        email: session.user.email,
+        image: session.user.image,
+        canOpenAdmin: initialUser?.canOpenAdmin,
+        adminUrl: initialUser?.adminUrl,
+      }
+    : initialUser;
   const [isNewsMenuOpen, setIsNewsMenuOpen] = useState(false);
   const [isProfileMegaOpen, setIsProfileMegaOpen] = useState(false);
-  const pathname = usePathname();
-  const isAccountActive = pathname === "/akun" || pathname.startsWith("/akun/");
-  const accountHref = user ? "/akun" : "/login";
-  const userInitial =
-    user?.name?.trim()?.[0]?.toUpperCase() ??
-    user?.email?.trim()?.[0]?.toUpperCase() ??
-    "A";
 
   const centerNavItemClassName =
     "relative h-auto rounded-full px-4 py-2.5 text-sm font-medium text-emerald-900/72 shadow-none transition-all duration-200 hover:text-emerald-950";
@@ -330,35 +333,11 @@ export function HomeNavbar({
                 Infaq Sekarang
               </Link>
             </Button>
-            <Button
-              asChild
-              variant="ghost"
-              className={cn(
-                "rounded-full shadow-none transition-all duration-200 hover:bg-emerald-50 hover:text-emerald-950",
-                user ? "h-10 w-10 overflow-hidden p-0" : "h-10 w-10 p-0",
-                isAccountActive ? "bg-emerald-50 text-emerald-950" : "text-emerald-900/85",
-              )}
-            >
-              <Link href={accountHref} aria-label={user ? "Buka akun" : "Login"}>
-                {user ? (
-                  user.image ? (
-                    <Image
-                      src={user.image}
-                      alt={user.name || "Akun"}
-                      width={40}
-                      height={40}
-                      className="h-full w-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-900">
-                      {userInitial}
-                    </span>
-                  )
-                ) : (
-                  <LogIn className="h-4 w-4" />
-                )}
-              </Link>
-            </Button>
+            <AccountMenu
+              user={user}
+              canOpenAdmin={Boolean(user?.canOpenAdmin)}
+              adminUrl={user?.adminUrl}
+            />
           </div>
         </NavBody>
 

@@ -47,7 +47,7 @@ export function LinkedGalleryViewer({ galleries }: LinkedGalleryViewerProps) {
                   key={gallery.id}
                   type="button"
                   onClick={() => setSelectedGallery(gallery)}
-                  className="overflow-hidden rounded-2xl border border-emerald-100 bg-white text-left transition duration-200 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                  className="overflow-hidden rounded-2xl border border-emerald-200 bg-white text-left transition duration-200 hover:-translate-y-1 hover:border-emerald-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-emerald-50">
                     {coverImage ? (

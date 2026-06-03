@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 import { PageIntro } from "@/components/content/page-intro";
 import { PublicContentSearch } from "@/components/content/public-content-search";
 import {
@@ -115,26 +114,31 @@ export default async function BeritaPage({
         primaryAction={{ label: "Lihat Artikel Terkini", href: "/artikel" }}
       />
 
-      <PublicContentSearch initialQuery={q} initialSort={sort} placeholder="Cari berita..." />
+      <PublicContentSearch
+        initialQuery={q}
+        initialSort={sort}
+        placeholder="Cari berita..."
+        summary={`Menampilkan ${articles.length} dari ${total} berita.`}
+      />
 
       {articles.length === 0 ? (
         <div className="py-8 text-center text-muted-foreground">
           Berita belum tersedia untuk filter ini.
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 xl:grid xl:grid-cols-2 xl:gap-6 xl:space-y-0">
           {articles.map((article) => {
             const publishedDate = article.publishedAt ?? article.createdAt;
 
             return (
               <article
                 key={article.id}
-                className="group overflow-hidden rounded-[22px] border border-emerald-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+                className="group overflow-hidden rounded-[22px] border border-emerald-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
               >
-                <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start">
+                <div className="flex h-full flex-col sm:flex-row sm:items-start">
                   <Link href={`/berita/${article.slug}`} className="block shrink-0">
                     {article.coverImage ? (
-                      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[16px] bg-muted sm:w-56">
+                      <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted sm:w-44 xl:w-52">
                         <Image
                           src={article.coverImage}
                           alt={article.title}
@@ -143,38 +147,29 @@ export default async function BeritaPage({
                         />
                       </div>
                     ) : (
-                      <div className="aspect-[4/3] w-full rounded-[16px] bg-muted sm:w-56" />
+                      <div className="aspect-[4/3] w-full bg-muted sm:w-44 xl:w-52" />
                     )}
                   </Link>
 
-                  <div className="flex min-w-0 flex-1 flex-col justify-between self-stretch">
+                  <div className="flex min-w-0 flex-1 self-stretch flex-col justify-between p-4">
                     <div>
                       <Link href={`/berita/${article.slug}`} className="block">
-                        <h2 className="line-clamp-2 text-lg font-bold leading-tight text-slate-900 capitalize">
+                        <h2 className="line-clamp-2 text-base font-bold leading-tight text-slate-900 capitalize">
                           {article.title}
                         </h2>
                       </Link>
-                      <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground">
-                        {truncateText(article.excerpt || stripHtmlTags(article.content), 220)}
+                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">
+                        {truncateText(article.excerpt || stripHtmlTags(article.content), 120)}
                       </p>
                     </div>
 
-                    <div className="mt-4 space-y-3">
+                    <div className="mt-4">
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span>{formatDate(publishedDate)}</span>
                         <span>•</span>
                         <span>{getReadingTime(article.content)}</span>
                       </div>
 
-                      {article.donationCampaign ? (
-                        <Link
-                          href={`/donasi/${article.donationCampaign.slug}`}
-                          className="inline-flex items-center gap-2 text-sm font-medium text-emerald-800 transition hover:text-emerald-950"
-                        >
-                          Lihat campaign terkait
-                          <ArrowUpRight className="h-4 w-4" />
-                        </Link>
-                      ) : null}
                     </div>
                   </div>
                 </div>

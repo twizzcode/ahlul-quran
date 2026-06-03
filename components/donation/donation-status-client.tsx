@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { QRIS_EXPIRY_MINUTES } from "@/lib/donation/donation-payment";
-import { buildDonationConfirmationWhatsappUrl } from "@/lib/donation/manual-bank-transfer";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 
 type DonationStatusClientProps = {
@@ -11,7 +9,6 @@ type DonationStatusClientProps = {
   bankName: string;
   bankAccount: string;
   bankHolder: string;
-  whatsappNumber: string;
 };
 
 type DonationDetail = {
@@ -23,15 +20,27 @@ type DonationDetail = {
   paidAt: string | null;
   qrisImageUrl?: string | null;
   donorName?: string | null;
-  snapRedirectUrl?: string | null;
 };
 
-function isManualBsiTransfer(paymentType: string | null) {
-  return (paymentType ?? "").toLowerCase().includes("bsi");
+function isManualBankTransfer(paymentType: string | null) {
+  const normalized = (paymentType ?? "").toLowerCase();
+  return normalized.includes("bank_transfer") || normalized.includes("manual_bank");
 }
 
 function isQrisPayment(paymentType: string | null) {
   return (paymentType ?? "").toLowerCase().includes("qris");
+}
+
+function getPaymentMethodLabel(paymentType: string | null) {
+  if (isQrisPayment(paymentType)) {
+    return "QRIS";
+  }
+
+  if (isManualBankTransfer(paymentType)) {
+    return "Transfer Bank";
+  }
+
+  return paymentType ?? "-";
 }
 
 function getStatusMeta(donation: DonationDetail | null) {
@@ -82,7 +91,7 @@ function getStatusMeta(donation: DonationDetail | null) {
   return {
     label: "Menunggu Pembayaran",
     className: "bg-yellow-100 text-yellow-700",
-    description: isManualBsiTransfer(paymentType)
+    description: isManualBankTransfer(paymentType)
       ? "Donasi transfer bank sudah tercatat dan sedang menunggu verifikasi admin."
       : "Donasi sedang diproses. Selesaikan pembayaran QRIS Anda.",
   };
@@ -93,28 +102,19 @@ export function DonationStatusClient({
   bankName,
   bankAccount,
   bankHolder,
-  whatsappNumber,
 }: DonationStatusClientProps) {
   const [donation, setDonation] = useState<DonationDetail | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(Boolean(orderId));
-  const [isCheckingStatus, setIsCheckingStatus] = useState<boolean>(false);
   const [isDownloadingQris, setIsDownloadingQris] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const [currentTime, setCurrentTime] = useState<number>(Date.now());
 
   const loadStatus = useCallback(
-    async (mode: "initial" | "manual" | "silent") => {
+    async () => {
       if (!orderId) {
         return;
       }
 
-      if (mode === "initial") {
-        setIsLoading(true);
-      }
-
-      if (mode === "manual") {
-        setIsCheckingStatus(true);
-      }
+      setIsLoading(true);
 
       try {
         const response = await fetch(`/api/donations/${orderId}/status`, {
@@ -132,13 +132,7 @@ export function DonationStatusClient({
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : "Gagal mengambil status.");
       } finally {
-        if (mode === "initial") {
-          setIsLoading(false);
-        }
-
-        if (mode === "manual") {
-          setIsCheckingStatus(false);
-        }
+        setIsLoading(false);
       }
     },
     [orderId]
@@ -149,290 +143,186 @@ export function DonationStatusClient({
       return;
     }
 
-    let intervalId: ReturnType<typeof setInterval> | null = null;
-    loadStatus("initial");
-
-    intervalId = setInterval(() => {
-      loadStatus("silent");
-    }, 8000);
-
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
+    loadStatus();
   }, [loadStatus, orderId]);
-
-  useEffect(() => {
-    if (!donation || !isQrisPayment(donation.paymentType) || donation.status !== "PENDING") {
-      return;
-    }
-
-    const intervalId = setInterval(() => {
-      setCurrentTime(Date.now());
-    }, 1000);
-
-    return () => clearInterval(intervalId);
-  }, [donation]);
 
   const statusMeta = useMemo(
     () => getStatusMeta(donation),
     [donation]
   );
-  const qrisExpiresAt = donation
-    ? new Date(donation.createdAt).getTime() + QRIS_EXPIRY_MINUTES * 60 * 1000
-    : null;
-  const qrisRemainingMs = qrisExpiresAt ? Math.max(qrisExpiresAt - currentTime, 0) : 0;
-  const qrisRemainingMinutes = Math.floor(qrisRemainingMs / 60000);
-  const qrisRemainingSeconds = Math.floor((qrisRemainingMs % 60000) / 1000);
-  const qrisCountdown = `${String(qrisRemainingMinutes).padStart(2, "0")}:${String(
-    qrisRemainingSeconds
-  ).padStart(2, "0")}`;
-  const transferConfirmationUrl = donation
-    ? buildDonationConfirmationWhatsappUrl({
-        whatsappNumber,
-        orderId: donation.orderId,
-        amount: donation.amount,
-        donorName: donation.donorName,
-      })
-    : null;
-  const qrisImageUrl = donation?.qrisImageUrl || donation?.snapRedirectUrl || null;
-  const handleDownloadQris = useCallback(async () => {
-    if (!qrisImageUrl) {
+  const qrisImageUrl = donation?.qrisImageUrl || null;
+  const handleDownloadQris = useCallback(() => {
+    if (!qrisImageUrl || !donation) {
       return;
     }
 
     setIsDownloadingQris(true);
-
-    try {
-      const response = await fetch(qrisImageUrl);
-      if (!response.ok) {
-        throw new Error("Gagal mengunduh QRIS.");
-      }
-
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = `${donation.orderId}-qris.png`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(objectUrl);
-    } catch {
-      setErrorMessage("Gagal mengunduh QRIS. Silakan coba lagi.");
-    } finally {
+    const link = document.createElement("a");
+    link.href = `/api/qris/download?url=${encodeURIComponent(qrisImageUrl)}&order_id=${encodeURIComponent(
+      donation.orderId
+    )}`;
+    link.download = `${donation.orderId}-qris.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => {
       setIsDownloadingQris(false);
-    }
+    }, 800);
   }, [donation, qrisImageUrl]);
   const showManualTransferPanel =
-    donation?.status === "PENDING" && isManualBsiTransfer(donation.paymentType);
+    donation?.status === "PENDING" && isManualBankTransfer(donation.paymentType);
   const showQrisPanel = donation?.status === "PENDING" && isQrisPayment(donation.paymentType);
-  const showSuccessActions = donation?.status === "SUCCESS";
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 pb-12 pt-[calc(var(--home-nav-height)+1rem)] md:px-0">
-      <div className="mx-auto w-full max-w-5xl">
-        <div className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
-          {!orderId ? (
-            <>
-              <h2 className="mb-2 text-2xl font-bold text-emerald-950">Order ID tidak ditemukan</h2>
-              <p className="mb-6 text-muted-foreground">
-                Parameter <span className="font-mono">order_id</span> belum tersedia.
-              </p>
-            </>
-          ) : isLoading ? (
-            <>
-              <h2 className="mb-2 text-2xl font-bold text-emerald-950">Memuat status donasi...</h2>
-              <p className="mb-6 text-muted-foreground">
-                Sedang mengecek status pembayaran.
-              </p>
-            </>
-          ) : errorMessage ? (
-            <>
-              <h2 className="mb-2 text-2xl font-bold text-emerald-950">Status tidak ditemukan</h2>
-              <p className="mb-6 text-muted-foreground">{errorMessage}</p>
-            </>
-          ) : donation ? (
-            <>
-              <h2 className="mb-2 text-2xl font-bold text-emerald-950">Status Donasi</h2>
-              <p className="mb-6 text-muted-foreground">{statusMeta.description}</p>
+    <div className="mx-auto w-full max-w-7xl px-4 pb-14 pt-[calc(var(--home-nav-height)+1rem)] md:px-0">
+      {!orderId ? (
+        <section className="py-6">
+          <h2 className="text-2xl font-bold text-emerald-950">Order ID tidak ditemukan</h2>
+          <p className="mt-2 text-slate-600">
+            Parameter <span className="font-mono">order_id</span> belum tersedia.
+          </p>
+        </section>
+      ) : isLoading ? (
+        <section className="py-6">
+          <h2 className="text-2xl font-bold text-emerald-950">Memuat status donasi...</h2>
+          <p className="mt-2 text-slate-600">Sedang mengambil data donasi Anda.</p>
+        </section>
+      ) : errorMessage ? (
+        <section className="py-6">
+          <h2 className="text-2xl font-bold text-emerald-950">Status tidak ditemukan</h2>
+          <p className="mt-2 text-slate-600">{errorMessage}</p>
+        </section>
+      ) : donation ? (
+        <section className="space-y-8 py-4">
+          <div className="border-b border-emerald-100 pb-6">
+            <span
+              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${statusMeta.className}`}
+            >
+              {statusMeta.label}
+            </span>
+            {showQrisPanel ? (
+              <div className="mt-3 space-y-2">
+                <h1 className="text-3xl font-bold text-emerald-950">Pembayaran QRIS</h1>
+                <p className="max-w-3xl text-slate-600">
+                  Pindai QRIS berikut untuk menyelesaikan donasi, lalu kirim konfirmasi ke admin
+                  agar pembayaran bisa diverifikasi.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                <h1 className="text-3xl font-bold text-emerald-950">Status Donasi</h1>
+                <p className="max-w-3xl text-slate-600">{statusMeta.description}</p>
+              </div>
+            )}
+          </div>
 
-              <div
-                className={`grid gap-4 text-left ${
-                  showManualTransferPanel || showQrisPanel
-                    ? "lg:grid-cols-[minmax(320px,420px)_minmax(0,1fr)] lg:items-stretch"
-                    : ""
-                }`}
-              >
-                {showManualTransferPanel || showQrisPanel ? (
-                  <div className="h-full space-y-4">
-                    {showManualTransferPanel ? (
-                      <div className="flex h-full flex-col rounded-2xl border border-emerald-100 bg-emerald-50/40 p-5 text-sm">
-                        <p className="text-base font-semibold text-slate-900">
-                          Instruksi Transfer BSI
-                        </p>
-                        <div className="mt-4 space-y-3">
-                          <div className="flex justify-between gap-3">
-                            <span className="text-muted-foreground">Bank</span>
-                            <span className="font-semibold text-slate-900">{bankName || "-"}</span>
-                          </div>
-                          <div className="flex justify-between gap-3">
-                            <span className="text-muted-foreground">No. Rekening</span>
-                            <span className="font-semibold text-slate-900">
-                              {bankAccount || "-"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between gap-3">
-                            <span className="text-muted-foreground">Atas Nama</span>
-                            <span className="font-semibold text-slate-900">{bankHolder || "-"}</span>
-                          </div>
-                        </div>
-                        <p className="mt-4 leading-7 text-muted-foreground">
-                          Setelah transfer ke rekening di atas, lanjutkan konfirmasi ke WhatsApp
-                          admin dengan menyertakan order ID ini. Status akan berubah setelah admin
-                          memverifikasi pembayaran Anda.
-                        </p>
-                        {transferConfirmationUrl ? (
-                          <div className="mt-auto border-t border-emerald-100 pt-4">
-                            <a
-                              href={transferConfirmationUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex min-h-12 items-center justify-center rounded-full bg-emerald-900 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
-                            >
-                              Konfirmasi ke WhatsApp
-                            </a>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-
-                    {showQrisPanel ? (
-                      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-5 text-sm">
-                        <p className="text-base font-semibold text-slate-900">Pembayaran QRIS</p>
-                        <p className="mt-2 text-muted-foreground">
-                          Pindai QRIS berikut untuk menyelesaikan donasi. Setelah pembayaran
-                          berhasil, status akan berubah otomatis atau bisa dicek manual.
-                        </p>
-                        {qrisImageUrl ? (
-                          <div className="mt-4 overflow-hidden rounded-2xl border bg-white p-4">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={qrisImageUrl}
-                              alt="Kode QRIS donasi"
-                              className="mx-auto h-auto w-full max-w-[280px]"
-                            />
-                          </div>
-                        ) : null}
-                        <div className="mt-4 rounded-2xl bg-white p-4">
-                          <p className="text-xs uppercase tracking-[0.22em] text-slate-400">
-                            Batas waktu QRIS
-                          </p>
-                          <p className="mt-1 text-2xl font-bold text-slate-900">{qrisCountdown}</p>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                <div className="flex h-full flex-col gap-4">
-                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-5 text-sm">
-                    <p className="mb-4 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                      Ringkasan Donasi
-                    </p>
-                    <div className="space-y-3">
-                      <div className="flex justify-between gap-3">
-                        <span className="text-muted-foreground">Order ID</span>
-                        <span className="font-mono">{donation.orderId}</span>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <span className="text-muted-foreground">Status</span>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusMeta.className}`}
-                        >
-                          {statusMeta.label}
-                        </span>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <span className="text-muted-foreground">Jumlah</span>
-                        <span className="font-semibold">{formatCurrency(donation.amount)}</span>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <span className="text-muted-foreground">Metode</span>
-                        <span>{donation.paymentType ?? "-"}</span>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <span className="text-muted-foreground">Dibuat</span>
-                        <span>{formatDateTime(donation.createdAt)}</span>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <span className="text-muted-foreground">Dibayar</span>
-                        <span>{donation.paidAt ? formatDateTime(donation.paidAt) : "-"}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {showQrisPanel ? (
-                    <div className="rounded-2xl border border-emerald-100 bg-white p-4 text-sm">
-                      <p className="mb-4 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                        Cara Pembayaran
-                      </p>
-                      <div className="space-y-2 text-muted-foreground">
-                        <p>1. Buka aplikasi mobile banking atau e-wallet yang mendukung QRIS.</p>
-                        <p>2. Scan QR code di kolom kiri dan pastikan nominalnya sesuai.</p>
-                        <p>3. Selesaikan pembayaran. Status donasi akan diperbarui otomatis.</p>
-                      </div>
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,420px)]">
+            <div className="space-y-8">
+              {showQrisPanel ? (
+                <section className="space-y-4">
+                  {qrisImageUrl ? (
+                    <div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={qrisImageUrl}
+                        alt="Kode QRIS donasi"
+                        className="mx-auto h-auto w-full max-w-[420px]"
+                      />
                     </div>
                   ) : null}
+                </section>
+              ) : null}
 
-                  <div className="mt-auto space-y-3 text-sm">
-                    {showSuccessActions ? (
-                      <>
-                        <Link
-                          href="/"
-                          className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-800"
-                        >
-                          Kembali ke Beranda
-                        </Link>
-                        <Link
-                          href="/donasi"
-                          className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900 transition hover:bg-emerald-100"
-                        >
-                          Donasi Lagi
-                        </Link>
-                      </>
-                    ) : (
-                      <>
-                        {showQrisPanel ? (
-                          <button
-                            type="button"
-                            onClick={handleDownloadQris}
-                            disabled={
-                              isDownloadingQris || !showQrisPanel || !qrisImageUrl
-                            }
-                            className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {isDownloadingQris ? "Mengunduh..." : "Download QRIS"}
-                          </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          onClick={() => loadStatus("manual")}
-                          disabled={isCheckingStatus || !orderId}
-                          className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {isCheckingStatus ? "Mengecek..." : "Cek Status"}
-                        </button>
-                      </>
-                    )}
+              {showManualTransferPanel ? (
+                <section className="space-y-4">
+                  <div className="space-y-2">
+                    <h2 className="text-xl font-semibold text-emerald-950">Instruksi Transfer Bank</h2>
+                    <p className="text-slate-600">
+                      Transfer ke rekening berikut, lalu lanjutkan konfirmasi ke WhatsApp admin
+                      dengan menyertakan order ID ini.
+                    </p>
+                  </div>
+                  <div className="space-y-4 rounded-[28px] border border-emerald-100 bg-emerald-50/50 p-6">
+                    <div className="flex justify-between gap-4">
+                      <span className="text-slate-500">Bank</span>
+                      <span className="text-right font-semibold text-emerald-950">{bankName || "-"}</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-slate-500">No. Rekening</span>
+                      <span className="text-right font-semibold text-emerald-950">{bankAccount || "-"}</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-slate-500">Atas Nama</span>
+                      <span className="text-right font-semibold text-emerald-950">{bankHolder || "-"}</span>
+                    </div>
+                  </div>
+                </section>
+              ) : null}
+            </div>
+
+            <aside className="space-y-6">
+              {showQrisPanel ? (
+                <section className="space-y-4 text-sm">
+                  <h2 className="text-lg font-semibold text-emerald-950">Cara Pembayaran</h2>
+                  <div className="space-y-2 text-slate-600">
+                    <p>1. Buka aplikasi mobile banking atau e-wallet yang mendukung QRIS.</p>
+                    <p>2. Scan QR code di sebelah kiri dan pastikan nominalnya sesuai.</p>
+                    <p>3. Selesaikan pembayaran lalu kirim bukti atau konfirmasi ke admin.</p>
+                  </div>
+                </section>
+              ) : null}
+
+              <section className="space-y-4 text-sm">
+                <h2 className="text-lg font-semibold text-emerald-950">Ringkasan Donasi</h2>
+                <div className="space-y-3">
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Order ID</span>
+                    <span className="font-mono text-emerald-950">{donation.orderId}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Jumlah</span>
+                    <span className="font-semibold text-emerald-950">{formatCurrency(donation.amount)}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Metode</span>
+                    <span className="text-emerald-950">{getPaymentMethodLabel(donation.paymentType)}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Dibuat</span>
+                    <span className="text-right text-emerald-950">{formatDateTime(donation.createdAt)}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Dibayar</span>
+                    <span className="text-right text-emerald-950">
+                      {donation.paidAt ? formatDateTime(donation.paidAt) : "-"}
+                    </span>
                   </div>
                 </div>
+              </section>
+
+              <div className="space-y-3 border-t border-emerald-100 pt-6">
+                {showQrisPanel ? (
+                  <button
+                    type="button"
+                    onClick={handleDownloadQris}
+                    disabled={isDownloadingQris || !qrisImageUrl}
+                    className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isDownloadingQris ? "Mengunduh..." : "Download QRIS"}
+                  </button>
+                ) : null}
+
+                <Link
+                  href="/"
+                  className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-800"
+                >
+                  Kembali ke Beranda
+                </Link>
               </div>
-            </>
-          ) : null}
-        </div>
-      </div>
+            </aside>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

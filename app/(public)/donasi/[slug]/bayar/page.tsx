@@ -85,6 +85,10 @@ export default async function DonationCampaignCheckoutPage({
           collectedAmount,
           progress,
           endDate: campaign.endDate ? campaign.endDate.toISOString() : null,
+          qrisEnabled: profile.qrisEnabled,
+          qrisImageUrl: profile.qrisImageUrl || null,
+          qrisIconUrl: profile.qrisIconUrl || null,
+          bankAccounts: profile.donationBankAccounts,
           supporters: Array.from(
             campaign.donations.reduce((acc, donation) => {
               const name = donation.isAnonymous ? "Hamba Allah" : donation.donorName;
@@ -101,6 +105,8 @@ export default async function DonationCampaignCheckoutPage({
           bankName: manualTransfer.bankName,
           bankAccount: manualTransfer.bankAccount,
           bankHolder: manualTransfer.bankHolder,
+          qrisHolderName: profile.qrisHolderName,
+          logoUrl: profile.logoUrl || "/logo.webp",
         }}
       />
     </div>

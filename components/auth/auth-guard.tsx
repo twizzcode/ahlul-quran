@@ -38,7 +38,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     const role = (session.user as Record<string, unknown>).role as string;
     if (!isDashboardRole(role)) {
       // Logged in but not admin → redirect to home
-      window.location.href = `${getPublicOrigin()}/akun`;
+      window.location.href = getPublicOrigin();
     }
   }, [session, isPending]);
 

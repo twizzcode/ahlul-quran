@@ -57,11 +57,11 @@ type DonationCampaignDetailResult = {
     id: string;
     title: string;
     slug: string;
+    type: "berita" | "artikel";
     excerpt: string | null;
     coverImage: string | null;
     publishedAt: Date | null;
     createdAt: Date;
-    tags: string[];
     category: {
       name: string;
       slug: string;
@@ -135,11 +135,11 @@ export default async function DonationCampaignDetailPage({
             id: true,
             title: true,
             slug: true,
+            type: true,
             excerpt: true,
             coverImage: true,
             publishedAt: true,
             createdAt: true,
-            tags: true,
             category: {
               select: {
                 name: true,
@@ -310,7 +310,7 @@ export default async function DonationCampaignDetailPage({
             {updates.length === 0 ? (
               <div className="mt-4 text-base leading-8 text-slate-700">Belum ada update.</div>
             ) : (
-              <div className="mt-6 space-y-8">
+              <div className="mt-5 space-y-6">
                 {updates.map((article) => {
                   const publishedAt = article.publishedAt ?? article.createdAt;
                   const href = getDonationCampaignUpdateHref(article);
@@ -325,9 +325,9 @@ export default async function DonationCampaignDetailPage({
                       </p>
 
                       <div className="mt-3">
-                        <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-5">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-3.5">
                           {article.coverImage ? (
-                            <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-2xl bg-slate-200 md:w-[320px]">
+                            <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-lg bg-slate-200 md:w-[190px]">
                               <Image
                                 src={article.coverImage}
                                 alt={article.title}
@@ -338,18 +338,18 @@ export default async function DonationCampaignDetailPage({
                           ) : null}
 
                           <div className="min-w-0 flex-1">
-                            <h3 className="text-xl font-semibold leading-tight capitalize text-emerald-950">
+                            <h3 className="text-base font-semibold leading-tight capitalize text-emerald-950">
                               {article.title}
                             </h3>
 
-                            <p className="mt-4 text-base leading-8 text-slate-700">
+                            <p className="mt-2.5 text-sm leading-5.5 text-slate-700">
                               {article.excerpt ||
                                 "Lihat berita lengkap untuk mengetahui perkembangan terbaru dari kampanye ini."}
                             </p>
 
                             <Link
                               href={href}
-                              className="mt-3 inline-flex items-center gap-2 text-lg font-medium text-sky-600 transition hover:text-sky-700"
+                              className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-sky-600 transition hover:text-sky-700"
                             >
                               Selengkapnya
                               <span aria-hidden="true">→</span>
@@ -405,7 +405,7 @@ export default async function DonationCampaignDetailPage({
           <LinkedGalleryViewer galleries={linkedGalleries} />
         </div>
 
-        <aside className="hidden lg:sticky lg:top-[calc(var(--home-nav-height)+3rem)] lg:block lg:border-l lg:border-emerald-100 lg:pl-8">
+        <aside className="hidden lg:sticky lg:top-[calc(var(--home-nav-height)+4rem)] lg:block lg:border-l lg:border-emerald-100 lg:pl-8">
           <section className="sm:py-2">
             <h1 className="text-3xl font-bold leading-tight tracking-tight capitalize text-emerald-950">
               {campaign.title}

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Heart, House, Images, Newspaper, UserRound, type LucideIcon } from "lucide-react";
+import { Heart, House, Images, Newspaper, type LucideIcon } from "lucide-react";
 
+import { AccountMenu } from "@/components/home/account-menu";
 import { cn } from "@/lib/utils";
 
 const navIcons: Record<string, LucideIcon> = {
@@ -11,7 +12,6 @@ const navIcons: Record<string, LucideIcon> = {
   berita: Newspaper,
   donasi: Heart,
   galeri: Images,
-  akun: UserRound,
 };
 
 const navItems = [
@@ -19,7 +19,6 @@ const navItems = [
   { label: "Berita", href: "/berita", icon: "berita" },
   { label: "Donasi", href: "/donasi", icon: "donasi" },
   { label: "Galeri", href: "/galeri", icon: "galeri" },
-  { label: "Akun", href: "/akun", icon: "akun" },
 ] as const;
 
 function isActive(pathname: string, href: string) {
@@ -39,7 +38,17 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function HomeMobileDock() {
+type HomeMobileDockProps = {
+  user: {
+    name: string;
+    email: string;
+    image?: string | null;
+    canOpenAdmin?: boolean;
+    adminUrl?: string | null;
+  } | null;
+};
+
+export function HomeMobileDock({ user }: HomeMobileDockProps) {
   const pathname = usePathname();
 
   return (
@@ -65,6 +74,12 @@ export function HomeMobileDock() {
             </Link>
           );
         })}
+        <AccountMenu
+          user={user}
+          canOpenAdmin={Boolean(user?.canOpenAdmin)}
+          adminUrl={user?.adminUrl}
+          mobile
+        />
       </div>
     </nav>
   );

@@ -54,7 +54,7 @@ export default async function DashboardLayout({
   const role = dbUser?.role;
 
   if (!isAdminRole(role)) {
-    redirect(`${publicOrigin}/akun`);
+    redirect(publicOrigin);
   }
 
   const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";

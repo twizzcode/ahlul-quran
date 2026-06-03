@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { getAdminRequestContext } from "@/lib/auth/admin-session";
-import { getExplicitArticleType } from "@/lib/content/public-articles";
+import type { PublicArticleType } from "@/lib/content/public-articles";
 import { apiError, apiSuccess, generateSlug } from "@/lib/utils";
 import { db } from "@/src";
 import { article, articleCategory } from "@/src/db/schema";
@@ -44,8 +44,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ sl
   const content = String(payload.content ?? "").trim();
   const excerpt = payload.excerpt ? String(payload.excerpt).trim() : null;
   const coverImage = payload.coverImage ? String(payload.coverImage).trim() : null;
-  const tags = Array.isArray(payload.tags) ? payload.tags.map(String) : existing.tags;
-  const articleType = getExplicitArticleType(tags) ?? "artikel";
+  const type: PublicArticleType = payload.type === "berita" ? "berita" : "artikel";
   const categoryId = await resolveCategoryId(payload.categoryId, payload.categoryName);
 
   if (title.length < 3 || content.length < 10) {
@@ -57,11 +56,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ sl
     excerpt,
     content,
     coverImage,
+    type,
     categoryId,
-    donationCampaignId: articleType === "berita" ? (payload.donationCampaignId ? String(payload.donationCampaignId).trim() : null) : null,
-    tags,
+    donationCampaignId: type === "berita" ? (payload.donationCampaignId ? String(payload.donationCampaignId).trim() : null) : null,
     updatedAt: new Date(),
   }).where(eq(article.slug, slug)).returning();
 
-  return apiSuccess(updated, "Artikel berhasil diperbarui.");
+  return apiSuccess(updated, `${type === "berita" ? "Berita" : "Artikel"} berhasil diperbarui.`);
 }

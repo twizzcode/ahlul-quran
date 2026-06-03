@@ -37,6 +37,10 @@ function articleWhere(args?: QueryArgs) {
     clauses.push(eq(article.slug, where.slug));
   }
 
+  if (where.type) {
+    clauses.push(eq(article.type, where.type));
+  }
+
   if (where.NOT?.id) {
     clauses.push(ne(article.id, where.NOT.id));
   }
@@ -117,6 +121,7 @@ const prisma = {
         with: {
           author: true,
           category: true,
+          donationCampaign: true,
         },
         orderBy: articleOrderBy(),
         limit: take(args),
@@ -128,6 +133,7 @@ const prisma = {
         with: {
           author: true,
           category: true,
+          donationCampaign: true,
         },
         orderBy: articleOrderBy(),
       });

@@ -121,7 +121,7 @@ export default async function ArtikelPage({
           Artikel belum tersedia untuk filter ini.
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 xl:grid xl:grid-cols-2 xl:gap-6 xl:space-y-0">
           {articles.map((article) => {
             const publishedDate = article.publishedAt ?? article.createdAt;
 
@@ -129,10 +129,10 @@ export default async function ArtikelPage({
               <Link
                 key={article.id}
                 href={`/artikel/${article.slug}`}
-                className="group flex flex-col gap-4 overflow-hidden rounded-[22px] border border-emerald-100 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_44px_rgba(15,23,42,0.06)] sm:flex-row sm:items-start"
+                className="group flex flex-col overflow-hidden rounded-[22px] border border-emerald-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-[0_18px_44px_rgba(15,23,42,0.06)] sm:flex-row sm:items-start"
               >
                 {article.coverImage ? (
-                  <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-[16px] bg-muted sm:w-56">
+                  <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-muted sm:w-44 xl:w-52">
                     <Image
                       src={article.coverImage}
                       alt={article.title}
@@ -141,16 +141,16 @@ export default async function ArtikelPage({
                     />
                   </div>
                 ) : (
-                  <div className="aspect-[4/3] w-full shrink-0 rounded-[16px] bg-muted sm:w-56" />
+                  <div className="aspect-[4/3] w-full shrink-0 bg-muted sm:w-44 xl:w-52" />
                 )}
 
-                <div className="flex min-w-0 flex-1 flex-col justify-between self-stretch">
+                <div className="flex min-w-0 flex-1 flex-col justify-between self-stretch p-4">
                   <div>
-                    <h2 className="line-clamp-2 text-lg font-bold leading-tight text-slate-900 capitalize">
+                    <h2 className="line-clamp-2 text-base font-bold leading-tight text-slate-900 capitalize">
                       {article.title}
                     </h2>
-                    <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground">
-                      {truncateText(article.excerpt || stripHtmlTags(article.content), 220)}
+                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">
+                      {truncateText(article.excerpt || stripHtmlTags(article.content), 120)}
                     </p>
                   </div>
 

@@ -57,6 +57,8 @@ export async function PUT(request: Request) {
       tiktok: payload.tiktok,
       qrisEnabled: payload.qrisEnabled,
       qrisImageUrl: payload.qrisImageUrl,
+      qrisIconUrl: payload.qrisIconUrl,
+      qrisHolderName: payload.qrisHolderName,
       donationBankAccounts: payload.donationBankAccounts,
       bankName: primaryBankAccount?.bankName || payload.bankName,
       bankAccount: primaryBankAccount?.bankAccount || payload.bankAccount,

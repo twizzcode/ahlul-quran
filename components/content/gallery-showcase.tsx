@@ -2,9 +2,16 @@
 
 import Image from "next/image";
 import { startTransition, useDeferredValue, useEffect, useState } from "react";
-import { CalendarDays, Images, Search, X } from "lucide-react";
+import { CalendarDays, Images, Search, SlidersHorizontal, X } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Pagination,
@@ -54,23 +61,30 @@ export function GalleryShowcase({ galleries }: GalleryShowcaseProps) {
   const [selectedGallery, setSelectedGallery] = useState<GalleryShowcaseItem | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLowerCase();
-  const filteredGalleries = normalizedQuery
-    ? galleries.filter((gallery) => {
-        const searchableText = [
-          gallery.title,
-          gallery.description,
-          ...gallery.images.map((image) => image.caption),
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
+  const filteredGalleries = (
+    normalizedQuery
+      ? galleries.filter((gallery) => {
+          const searchableText = [
+            gallery.title,
+            gallery.description,
+            ...gallery.images.map((image) => image.caption),
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
 
-        return searchableText.includes(normalizedQuery);
-      })
-    : galleries;
+          return searchableText.includes(normalizedQuery);
+        })
+      : galleries
+  ).sort((left, right) => {
+    const leftTime = new Date(left.createdAt).getTime();
+    const rightTime = new Date(right.createdAt).getTime();
+    return sort === "oldest" ? leftTime - rightTime : rightTime - leftTime;
+  });
   const totalPages = Math.max(1, Math.ceil(filteredGalleries.length / GALLERIES_PER_PAGE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const paginatedGalleries = filteredGalleries.slice(
@@ -113,25 +127,70 @@ export function GalleryShowcase({ galleries }: GalleryShowcaseProps) {
           </p>
         </div>
 
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-700/60" />
-          <Input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Cari galeri..."
-            className="h-11 rounded-xl border-emerald-100 bg-white pl-10 pr-11 shadow-sm focus-visible:border-emerald-300 focus-visible:ring-emerald-100"
-          />
-          {query ? (
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-700/60 transition hover:text-emerald-900"
-              aria-label="Hapus pencarian"
+        <div className="flex w-full gap-2 sm:w-auto">
+          <div className="relative flex-1 sm:w-80">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-700/60" />
+            <Input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Cari galeri..."
+              className="h-11 rounded-xl border-emerald-100 bg-white pl-10 pr-11 shadow-sm focus-visible:border-emerald-300 focus-visible:ring-emerald-100"
+            />
+            {query ? (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-700/60 transition hover:text-emerald-900"
+                aria-label="Hapus pencarian"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-11 w-11 rounded-xl border-emerald-100"
+                aria-label="Urutkan galeri"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="z-[240] min-w-[220px] rounded-2xl border-emerald-100 p-2"
             >
-              <X className="h-4 w-4" />
-            </button>
-          ) : null}
+              <DropdownMenuCheckboxItem
+                indicatorPosition="right"
+                checked={sort === "oldest"}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setSort("oldest");
+                  }
+                }}
+                className="rounded-xl py-2.5 pr-8 pl-3 text-sm text-emerald-950"
+              >
+                Dari yang terlama
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                indicatorPosition="right"
+                checked={sort === "newest"}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setSort("newest");
+                  }
+                }}
+                className="rounded-xl py-2.5 pr-8 pl-3 text-sm text-emerald-950"
+              >
+                Dari yang terbaru
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -167,7 +226,7 @@ export function GalleryShowcase({ galleries }: GalleryShowcaseProps) {
                 key={gallery.id}
                 type="button"
                 onClick={() => setSelectedGallery(gallery)}
-                className="group h-full overflow-hidden rounded-[24px] border border-emerald-100 bg-white text-left shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                className="group h-full overflow-hidden rounded-[24px] border border-emerald-200 bg-white text-left shadow-sm transition duration-200 hover:-translate-y-1 hover:border-emerald-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
               >
                 <article className="flex h-full flex-col">
                   <div className="relative aspect-[4/3] overflow-hidden bg-emerald-50">

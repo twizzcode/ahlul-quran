@@ -70,7 +70,7 @@ export function DashboardProvider({ children, initialUser }: DashboardProviderPr
     }
 
     if (shouldRedirectToHome) {
-      window.location.href = `${getPublicOrigin()}/akun`;
+      window.location.href = getPublicOrigin();
     }
   }, [shouldRedirectToHome, shouldRedirectToLogin]);
 

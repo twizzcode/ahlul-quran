@@ -62,7 +62,7 @@ export function SiteFooter({ profile }: SiteFooterProps) {
       title: "Program",
       links: [
         { label: "Donasi", href: "/donasi" },
-        { label: "Program", href: "/kegiatan" },
+        { label: "Program", href: "/program" },
         { label: "Berita", href: "/berita" },
         { label: "Artikel", href: "/artikel" },
         { label: "Galeri", href: "/galeri" },

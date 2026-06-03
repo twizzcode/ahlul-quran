@@ -1,22 +1,7 @@
-export const NEWS_KEYWORDS = [
-  "berita",
-  "news",
-  "pengumuman",
-  "update",
-  "laporan",
-  "kabar",
-] as const;
-
 export type PublicArticleType = "berita" | "artikel";
-export const ARTICLE_TYPE_TAG_PREFIX = "__type:";
 
 type PublicArticleLike = {
-  title: string;
-  tags: string[];
-  category: {
-    name: string;
-    slug: string;
-  } | null;
+  type: PublicArticleType;
 };
 
 export const publicArticleSelect = {
@@ -26,9 +11,9 @@ export const publicArticleSelect = {
   excerpt: true,
   content: true,
   coverImage: true,
+  type: true,
   publishedAt: true,
   createdAt: true,
-  tags: true,
   viewCount: true,
   author: {
     select: {
@@ -57,9 +42,9 @@ export type PublicArticleRecord = {
   excerpt: string | null;
   content: string;
   coverImage: string | null;
+  type: PublicArticleType;
   publishedAt: Date | null;
   createdAt: Date;
-  tags: string[];
   viewCount: number;
   author: {
     name: string;
@@ -73,58 +58,10 @@ export type PublicArticleRecord = {
     title: string;
     slug: string;
   } | null;
-};
-
-export function getExplicitArticleType(
-  tags: string[] | null | undefined
-): PublicArticleType | null {
-  if (!Array.isArray(tags)) return null;
-
-  const normalized = tags.find((tag) =>
-    tag.toLowerCase().startsWith(ARTICLE_TYPE_TAG_PREFIX)
-  );
-
-  if (!normalized) return null;
-
-  const value = normalized.slice(ARTICLE_TYPE_TAG_PREFIX.length).toLowerCase();
-  return value === "berita" || value === "artikel" ? value : null;
-}
-
-export function withArticleTypeTag(
-  tags: string[] | null | undefined,
-  type: PublicArticleType
-) {
-  const cleanTags = (tags ?? []).filter(
-    (tag) => !tag.toLowerCase().startsWith(ARTICLE_TYPE_TAG_PREFIX)
-  );
-
-  return [...cleanTags, `${ARTICLE_TYPE_TAG_PREFIX}${type}`];
-}
-
-export function getVisibleArticleTags(tags: string[] | null | undefined) {
-  return (tags ?? []).filter(
-    (tag) => !tag.toLowerCase().startsWith(ARTICLE_TYPE_TAG_PREFIX)
-  );
 }
 
 export function getPublicArticleType(
   article: PublicArticleLike
 ): PublicArticleType {
-  const explicitType = getExplicitArticleType(article.tags);
-  if (explicitType) {
-    return explicitType;
-  }
-
-  const haystack = [
-    article.title,
-    article.category?.name ?? "",
-    article.category?.slug ?? "",
-    ...article.tags,
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  return NEWS_KEYWORDS.some((keyword) => haystack.includes(keyword))
-    ? "berita"
-    : "artikel";
+  return article.type;
 }

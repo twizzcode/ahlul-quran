@@ -6,6 +6,7 @@ export const UPLOAD_FOLDERS = {
   homepageTestimonials: "v1/homepage/testimonials",
   homepageCtaCards: "v1/homepage/cta-cards",
   profileDonationQris: "v1/profile/donation/qris",
+  profileDonationQrisIcon: "v1/profile/donation/qris-icon",
   profileDonationBanks: "v1/profile/donation/banks",
   profileCommittee: "v1/profile/committee",
   campaignsCovers: "campaigns/covers",

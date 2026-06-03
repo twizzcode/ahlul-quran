@@ -108,10 +108,6 @@ function getStatusClass(status: DashboardDonationItem["status"]) {
   return "bg-yellow-100 text-yellow-700";
 }
 
-function isManualBsiTransfer(paymentType: string | null) {
-  return (paymentType ?? "").toLowerCase().includes("bsi");
-}
-
 function getDateRange() {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -138,7 +134,7 @@ export function DashboardDonationManagement({
   const [isManualFormOpen, setIsManualFormOpen] = useState(false);
   const [isCreatingManualDonation, setIsCreatingManualDonation] = useState(false);
   const [approvingDonationId, setApprovingDonationId] = useState<string | null>(null);
-  const [cancelingDonationId, setCancelingDonationId] = useState<string | null>(null);
+  const [deletingDonationId, setDeletingDonationId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
   const [statusFilter, setStatusFilter] = useState("__all__");
   const [manualCampaignId, setManualCampaignId] = useState("__general__");
@@ -272,7 +268,7 @@ export function DashboardDonationManagement({
         );
       }
 
-      toast.success("Donasi transfer BSI berhasil di-approve.");
+      toast.success("Donasi berhasil di-approve.");
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Gagal meng-approve donasi.");
     } finally {
@@ -280,42 +276,33 @@ export function DashboardDonationManagement({
     }
   }
 
-  async function handleCancelDonation(donation: DashboardDonationItem) {
-    const confirmed = window.confirm(`Batalkan donasi ${donation.orderId}?`);
+  async function handleDeleteDonation(donation: DashboardDonationItem) {
+    const confirmed = window.confirm(`Hapus donasi ${donation.orderId}?`);
 
     if (!confirmed) {
       return;
     }
 
     setActionError("");
-    setCancelingDonationId(donation.id);
+    setDeletingDonationId(donation.id);
 
     try {
-      const response = await fetch(`/api/donations/cancel/${donation.id}`, {
-        method: "POST",
+      const response = await fetch(`/api/donations/${donation.id}`, {
+        method: "DELETE",
       });
       const result = await response.json();
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.message || "Gagal membatalkan donasi.");
+        throw new Error(result?.message || "Gagal menghapus donasi.");
       }
 
-      setDonations((prev) =>
-        prev.map((item) =>
-          item.id === donation.id
-            ? {
-                ...item,
-                status: "CANCELED",
-              }
-            : item
-        )
-      );
+      setDonations((prev) => prev.filter((item) => item.id !== donation.id));
 
-      toast.success("Donasi berhasil dibatalkan.");
+      toast.success("Donasi berhasil dihapus.");
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Gagal membatalkan donasi.");
+      setActionError(error instanceof Error ? error.message : "Gagal menghapus donasi.");
     } finally {
-      setCancelingDonationId(null);
+      setDeletingDonationId(null);
     }
   }
 
@@ -831,22 +818,20 @@ export function DashboardDonationManagement({
                     <td className="p-4 text-right">
                       {donation.status === "PENDING" ? (
                         <div className="flex justify-end gap-2">
-                          {isManualBsiTransfer(donation.paymentType) ? (
-                            <Button
-                              size="sm"
-                              disabled={approvingDonationId === donation.id}
-                              onClick={() => handleApproveDonation(donation)}
-                            >
-                              {approvingDonationId === donation.id ? "Approving..." : "Approve"}
-                            </Button>
-                          ) : null}
+                          <Button
+                            size="sm"
+                            disabled={approvingDonationId === donation.id}
+                            onClick={() => handleApproveDonation(donation)}
+                          >
+                            {approvingDonationId === donation.id ? "Mencentang..." : "Centang"}
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            disabled={cancelingDonationId === donation.id}
-                            onClick={() => handleCancelDonation(donation)}
+                            disabled={deletingDonationId === donation.id}
+                            onClick={() => handleDeleteDonation(donation)}
                           >
-                            {cancelingDonationId === donation.id ? "Canceling..." : "Cancel"}
+                            {deletingDonationId === donation.id ? "Menghapus..." : "Hapus"}
                           </Button>
                         </div>
                       ) : (

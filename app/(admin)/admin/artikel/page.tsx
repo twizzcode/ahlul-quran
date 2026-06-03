@@ -45,8 +45,8 @@ export default async function DashboardArtikelPage({ searchParams }: DashboardAr
     <div className="pt-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Artikel</h1>
-          <p className="text-sm text-muted-foreground">Kelola artikel, kajian, dan konten website.</p>
+          <h1 className="text-2xl font-bold">Berita dan Artikel</h1>
+          <p className="text-sm text-muted-foreground">Kelola berita, artikel, kajian, dan konten website.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" asChild>

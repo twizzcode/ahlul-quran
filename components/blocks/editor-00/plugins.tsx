@@ -135,7 +135,7 @@ function ToolbarSelect({
       value={value}
       onChange={(event) => onChange(event.target.value)}
       className={cn(
-        "h-9 rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none transition focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40",
+        "h-9 rounded-md border border-input bg-white px-3 text-sm shadow-xs outline-none transition focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40",
         className
       )}
     >
@@ -431,7 +431,7 @@ function ToolbarPlugin({
   )
 
   return (
-    <div className="border-b bg-background/95 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/75">
+    <div className="border-b bg-white px-3 py-2">
       <div className="flex flex-wrap items-center gap-2">
         {allowImageUpload ? (
           <input
