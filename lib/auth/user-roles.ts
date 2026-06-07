@@ -29,7 +29,9 @@ export function isManagedAdminRole(role: string | null | undefined) {
   );
 }
 
-export function isKnownUserRole(role: string | null | undefined) {
+export function isKnownUserRole(
+  role: string | null | undefined,
+): role is (typeof USER_ROLE_OPTIONS)[number] {
   return (
     typeof role === "string" &&
     USER_ROLE_OPTIONS.includes(role as (typeof USER_ROLE_OPTIONS)[number])

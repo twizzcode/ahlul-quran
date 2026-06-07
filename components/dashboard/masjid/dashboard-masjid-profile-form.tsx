@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { UPLOAD_FOLDERS } from "@/lib/storage/upload-folders";
+import { cn } from "@/lib/utils";
 
 type DashboardMasjidProfileFormProps = {
   initialData: MasjidProfileData;
@@ -967,15 +968,17 @@ function DynamicItemCard({
   onRemove,
   hideRemoveButton = false,
   headerActions,
+  className,
 }: {
   title: string;
   children: ReactNode;
   onRemove: () => void;
   hideRemoveButton?: boolean;
   headerActions?: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border/80 bg-muted/20 p-4">
+    <div className={cn("rounded-xl border border-border/80 bg-muted/20 p-4", className)}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold">{title}</h3>
         {headerActions ?? null}
