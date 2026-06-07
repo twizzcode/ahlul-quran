@@ -5,7 +5,16 @@ import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/sonner";
-
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { R2ImageUploadField } from "@/components/shared/r2-image-upload-field";
 import { Button } from "@/components/ui/button";
 import { DatePickerField } from "@/components/ui/date-picker-field";
@@ -23,6 +32,7 @@ import {
 } from "@/components/dashboard/donations/dashboard-donation-management";
 import { type PendingUploadImage, uploadFileToR2 } from "@/lib/storage/upload-client";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { CalendarDays, ImageIcon, Newspaper, Target, Users } from "lucide-react";
 
 type DashboardCampaignDetailProps = {
   campaign: DashboardCampaignItem;
@@ -59,6 +69,7 @@ export function DashboardCampaignDetail({
   const [pendingCoverImage, setPendingCoverImage] = useState<PendingUploadImage | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const pendingCoverImageRef = useRef<PendingUploadImage | null>(null);
 
@@ -164,14 +175,6 @@ export function DashboardCampaignDetail({
   }
 
   async function handleDelete() {
-    const confirmed = window.confirm(
-      `Hapus kampanye "${campaign.title}"?\nDonasi yang sudah terhubung akan dilepas dari kampanye ini.`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     setErrorMessage("");
     setIsDeleting(true);
 
@@ -185,6 +188,7 @@ export function DashboardCampaignDetail({
         throw new Error(result?.message || "Gagal menghapus kampanye.");
       }
 
+      setIsDeleteDialogOpen(false);
       router.push("/kampanye");
       router.refresh();
     } catch (error) {
@@ -195,20 +199,99 @@ export function DashboardCampaignDetail({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Kelola Kampanye</h1>
-          <p className="text-sm text-muted-foreground">
-            Edit detail kampanye, cover image, status, dan berita yang tertaut.
-          </p>
+      <div className="overflow-hidden rounded-[28px] border border-emerald-100 bg-[linear-gradient(135deg,#f8fff9_0%,#ffffff_55%,#eef8f1_100%)]">
+        <div className="grid gap-6 px-6 py-6 lg:grid-cols-[minmax(0,1.3fr)_280px] lg:px-7">
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      campaign.isActive
+                        ? "bg-emerald-600 text-white"
+                        : "bg-slate-200 text-slate-700"
+                    }`}
+                  >
+                    {campaign.isActive ? "Kampanye Aktif" : "Kampanye Nonaktif"}
+                  </span>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
+                    {campaign.progress}% tercapai
+                  </span>
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight text-slate-950">
+                    {campaign.title}
+                  </h1>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                    Kelola detail kampanye, target penggalangan, media pendukung, dan daftar
+                    donasi yang sudah masuk dari satu halaman.
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" asChild className="rounded-xl bg-white">
+                <Link href="/kampanye">Kembali ke Kampanye</Link>
+              </Button>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl border border-emerald-100 bg-white/90 p-4 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Terkumpul</p>
+                <p className="mt-2 text-xl font-semibold text-emerald-700">
+                  {formatCurrency(campaign.collectedAmount)}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-emerald-100 bg-white/90 p-4 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Target</p>
+                <p className="mt-2 text-xl font-semibold text-slate-900">
+                  {formatCurrency(campaign.targetAmount)}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-emerald-100 bg-white/90 p-4 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Donasi Sukses</p>
+                <p className="mt-2 text-xl font-semibold text-slate-900">{campaign.donationCount}</p>
+              </div>
+              <div className="rounded-2xl border border-emerald-100 bg-white/90 p-4 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Berakhir</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">
+                  {campaign.endDate ? formatDateTime(campaign.endDate) : "Tanpa batas waktu"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-[24px] border border-emerald-100 bg-white shadow-sm">
+            <div className="relative aspect-[5/4] bg-muted">
+              {campaign.coverImage ? (
+                <Image
+                  src={campaign.coverImage}
+                  alt={campaign.title}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                  Cover kampanye belum tersedia
+                </div>
+              )}
+            </div>
+            <div className="border-t border-emerald-100 px-4 py-4">
+              <div className="mb-3 flex items-center justify-between gap-3 text-sm">
+                <span className="font-medium text-slate-700">Progress penggalangan</span>
+                <span className="font-semibold text-slate-900">{campaign.progress}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-emerald-600 transition-all"
+                  style={{ width: `${campaign.progress}%` }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/kampanye">Kembali ke Kampanye</Link>
-        </Button>
       </div>
 
       {errorMessage ? (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {errorMessage}
         </div>
       ) : null}
@@ -216,10 +299,13 @@ export function DashboardCampaignDetail({
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_380px]">
         <div className="space-y-6">
           <form className="space-y-6" onSubmit={handleSubmit}>
-            <section className="rounded-[24px] border bg-card p-5">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Informasi Utama
-              </h3>
+            <section className="rounded-[26px] border border-slate-200 bg-card p-6 shadow-sm">
+              <div className="mb-5">
+                <h2 className="text-lg font-semibold text-slate-950">Informasi Utama</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Perbarui identitas kampanye dan materi visual yang tampil di halaman publik.
+                </p>
+              </div>
               <div className="mt-4 grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
                 <div>
                   <R2ImageUploadField
@@ -261,10 +347,13 @@ export function DashboardCampaignDetail({
               </div>
             </section>
 
-            <section className="rounded-[24px] border bg-card p-5">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Pengaturan
-              </h3>
+            <section className="rounded-[26px] border border-slate-200 bg-card p-6 shadow-sm">
+              <div className="mb-5">
+                <h2 className="text-lg font-semibold text-slate-950">Pengaturan</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Atur target dana, status kampanye, dan batas waktu penggalangan.
+                </p>
+              </div>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium">Target</label>
@@ -296,13 +385,21 @@ export function DashboardCampaignDetail({
               </div>
             </section>
 
-            <section className="rounded-[24px] border bg-card p-5">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Galeri Tertaut
-              </h3>
+            <section className="rounded-[26px] border border-slate-200 bg-card p-6 shadow-sm">
+              <div className="mb-5 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-950">Galeri Tertaut</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Pilih galeri yang ingin ditampilkan sebagai pendukung kampanye ini.
+                  </p>
+                </div>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                  {linkedGalleryIds.length} dipilih
+                </span>
+              </div>
               <div className="mt-4">
                 {galleryOptions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
                     Belum ada galeri yang tersedia untuk ditautkan.
                   </p>
                 ) : (
@@ -346,8 +443,13 @@ export function DashboardCampaignDetail({
                 )}
               </div>
             </section>
-            <div className="flex flex-wrap justify-between gap-3">
-              <Button type="button" variant="destructive" disabled={isDeleting} onClick={handleDelete}>
+            <div className="flex flex-wrap justify-between gap-3 rounded-[26px] border border-slate-200 bg-card p-5 shadow-sm">
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={isDeleting}
+                onClick={() => setIsDeleteDialogOpen(true)}
+              >
                 {isDeleting ? "Menghapus..." : "Hapus Kampanye"}
               </Button>
               <Button type="submit" disabled={isSubmitting} className="min-w-48">
@@ -358,51 +460,75 @@ export function DashboardCampaignDetail({
         </div>
 
         <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
-          <section className="rounded-[24px] border bg-card p-5">
-            <h2 className="font-semibold">Ringkasan Kampanye</h2>
-            <div className="mt-4">
-              <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-                <span className="font-semibold text-slate-900">
-                  {formatCurrency(campaign.collectedAmount)}
-                </span>
-                <span className="text-slate-500">
-                  dari {formatCurrency(campaign.targetAmount)}
-                </span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-                <div
-                  className="h-full rounded-full bg-emerald-600 transition-all"
-                  style={{ width: `${campaign.progress}%` }}
-                />
-              </div>
-              <p className="mt-2 text-xs text-slate-500">{campaign.progress}% terkumpul</p>
+          <section className="rounded-[26px] border border-slate-200 bg-card p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-slate-950">Ringkasan Kampanye</h2>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                {campaign.progress}% progress
+              </span>
             </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              <div className="rounded-2xl border bg-emerald-50/70 p-4">
-                <p className="text-xs text-muted-foreground">Terkumpul</p>
-                <p className="mt-1 text-xl font-semibold text-emerald-700">
+            <div className="mt-5 space-y-3">
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-emerald-700/80">Total Terkumpul</p>
+                <p className="mt-2 text-2xl font-semibold text-emerald-700">
                   {formatCurrency(campaign.collectedAmount)}
                 </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  dari target {formatCurrency(campaign.targetAmount)}
+                </p>
               </div>
-              <div className="rounded-2xl border p-4">
-                <p className="text-xs text-muted-foreground">Target</p>
-                <p className="mt-1 text-lg font-semibold">{formatCurrency(campaign.targetAmount)}</p>
-              </div>
-              <div className="rounded-2xl border p-4">
-                <p className="text-xs text-muted-foreground">Donasi Sukses</p>
-                <p className="mt-1 text-lg font-semibold">{campaign.donationCount}</p>
-              </div>
-              <div className="rounded-2xl border p-4">
-                <p className="text-xs text-muted-foreground">Status</p>
-                <p className="mt-1 text-lg font-semibold">{campaign.isActive ? "Aktif" : "Nonaktif"}</p>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <div className="flex items-center gap-3 rounded-2xl border p-4">
+                  <div className="rounded-xl bg-slate-100 p-2 text-slate-700">
+                    <Target className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Target Dana</p>
+                    <p className="font-semibold text-slate-900">
+                      {formatCurrency(campaign.targetAmount)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-2xl border p-4">
+                  <div className="rounded-xl bg-slate-100 p-2 text-slate-700">
+                    <Users className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Donasi Sukses</p>
+                    <p className="font-semibold text-slate-900">{campaign.donationCount}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-2xl border p-4">
+                  <div className="rounded-xl bg-slate-100 p-2 text-slate-700">
+                    <CalendarDays className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Batas Waktu</p>
+                    <p className="font-semibold text-slate-900">
+                      {campaign.endDate ? formatDateTime(campaign.endDate) : "Tanpa batas waktu"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-2xl border p-4">
+                  <div className="rounded-xl bg-slate-100 p-2 text-slate-700">
+                    <ImageIcon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Galeri Aktif</p>
+                    <p className="font-semibold text-slate-900">
+                      {campaign.linkedGalleries.length}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
 
-          <section className="rounded-[24px] border bg-card p-5">
+          <section className="rounded-[26px] border border-slate-200 bg-card p-6 shadow-sm">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="font-semibold">Galeri Tertaut</h2>
+              <h2 className="text-lg font-semibold text-slate-950">Galeri Tertaut</h2>
               <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
                 {campaign.linkedGalleries.length}
               </span>
@@ -414,7 +540,10 @@ export function DashboardCampaignDetail({
             ) : (
               <div className="mt-4 space-y-2">
                 {campaign.linkedGalleries.map((gallery) => (
-                  <div key={gallery.id} className="flex items-center gap-3 rounded-xl border p-3">
+                  <div
+                    key={gallery.id}
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200 p-3"
+                  >
                     {gallery.coverImage ? (
                       <div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-lg bg-muted">
                         <Image src={gallery.coverImage} alt={gallery.title} fill className="object-cover" />
@@ -436,9 +565,9 @@ export function DashboardCampaignDetail({
             )}
           </section>
 
-          <section className="rounded-[24px] border bg-card p-5">
+          <section className="rounded-[26px] border border-slate-200 bg-card p-6 shadow-sm">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="font-semibold">Berita Tertaut</h2>
+              <h2 className="text-lg font-semibold text-slate-950">Berita Tertaut</h2>
               <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
                 {campaign.linkedArticles.length}
               </span>
@@ -450,19 +579,31 @@ export function DashboardCampaignDetail({
             ) : (
               <div className="mt-4 space-y-2">
                 {campaign.linkedArticles.map((article) => (
-                  <div key={article.id} className="rounded-xl border p-3">
-                    <p className="line-clamp-2 text-sm font-medium">{article.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {formatDateTime(article.publishedAt)}
-                    </p>
+                  <div key={article.id} className="rounded-2xl border border-slate-200 p-3">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-xl bg-slate-100 p-2 text-slate-700">
+                        <Newspaper className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="line-clamp-2 text-sm font-medium">{article.title}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {formatDateTime(article.publishedAt)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </section>
 
-          <section className="rounded-[24px] border bg-card p-5">
-            <h2 className="font-semibold">Donasi Terkait</h2>
+          <section className="rounded-[26px] border border-slate-200 bg-card p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-slate-950">Donasi Terkait</h2>
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                {donations.length}
+              </span>
+            </div>
             {donations.length === 0 ? (
               <div className="mt-4 rounded-xl border p-4 text-sm text-muted-foreground">
                 Belum ada donasi yang terkait dengan kampanye ini.
@@ -472,7 +613,7 @@ export function DashboardCampaignDetail({
                 {donations.map((donation) => (
                   <div
                     key={donation.id}
-                    className="flex items-center justify-between gap-3 rounded-xl border p-3 text-sm"
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 p-3 text-sm"
                   >
                     <div className="min-w-0">
                       <p className="font-medium">{donation.donorName}</p>
@@ -497,6 +638,31 @@ export function DashboardCampaignDetail({
           </section>
         </div>
       </div>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="max-w-md p-6">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus kampanye?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Kampanye <span className="font-medium text-slate-900">{campaign.title}</span> akan
+              dihapus. Donasi yang sudah terhubung akan dilepas dari kampanye ini.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              disabled={isDeleting}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleDelete();
+              }}
+            >
+              {isDeleting ? "Menghapus..." : "Hapus Kampanye"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -3,6 +3,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { DashboardCampaignCreateForm } from "@/components/dashboard/donations/dashboard-campaign-create-form";
@@ -29,7 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Check, Loader2, Pencil, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
 
 export type DashboardCampaignLinkedArticle = {
   id: string;
@@ -75,7 +85,11 @@ export type DashboardDonationItem = {
   id: string;
   orderId: string;
   donorName: string;
+  donorEmail: string | null;
+  donorPhone: string | null;
   amount: number;
+  message: string | null;
+  isAnonymous: boolean;
   paymentType: string | null;
   status: "PENDING" | "SUCCESS" | "FAILED" | "EXPIRED" | "CHALLENGE" | "CANCELED";
   createdAt: string;
@@ -89,6 +103,24 @@ type DashboardDonationManagementProps = {
   initialDonations: DashboardDonationItem[];
   galleryOptions?: DashboardCampaignGalleryOption[];
 };
+
+type DonationActionDialogState =
+  | {
+      type: "approve" | "delete";
+      donation: DashboardDonationItem;
+    }
+  | null;
+
+type DonationEditState = {
+  donationId: string;
+  donorName: string;
+  donorEmail: string;
+  donorPhone: string;
+  amount: string;
+  message: string;
+  isAnonymous: boolean;
+  campaignId: string;
+} | null;
 
 const statusLabel: Record<string, string> = {
   PENDING: "Menunggu",
@@ -135,6 +167,9 @@ export function DashboardDonationManagement({
   const [isCreatingManualDonation, setIsCreatingManualDonation] = useState(false);
   const [approvingDonationId, setApprovingDonationId] = useState<string | null>(null);
   const [deletingDonationId, setDeletingDonationId] = useState<string | null>(null);
+  const [editingDonationId, setEditingDonationId] = useState<string | null>(null);
+  const [actionDialog, setActionDialog] = useState<DonationActionDialogState>(null);
+  const [editDonation, setEditDonation] = useState<DonationEditState>(null);
   const [actionError, setActionError] = useState("");
   const [statusFilter, setStatusFilter] = useState("__all__");
   const [manualCampaignId, setManualCampaignId] = useState("__general__");
@@ -148,6 +183,52 @@ export function DashboardDonationManagement({
   function handleCampaignCreated(campaign: DashboardCampaignItem) {
     setCampaigns((prev) => [campaign, ...prev]);
     setIsCreateDialogOpen(false);
+  }
+
+  function updateCampaignTotals(
+    previousDonation: DashboardDonationItem | null,
+    nextDonation: DashboardDonationItem | null
+  ) {
+    setCampaigns((prev) =>
+      prev.map((campaign) => {
+        let collectedAmount = campaign.collectedAmount;
+        let donationCount = campaign.donationCount;
+
+        if (previousDonation?.status === "SUCCESS" && previousDonation.campaignId === campaign.id) {
+          collectedAmount -= previousDonation.amount;
+          donationCount -= 1;
+        }
+
+        if (nextDonation?.status === "SUCCESS" && nextDonation.campaignId === campaign.id) {
+          collectedAmount += nextDonation.amount;
+          donationCount += 1;
+        }
+
+        const safeCollectedAmount = Math.max(0, collectedAmount);
+        const safeDonationCount = Math.max(0, donationCount);
+
+        return {
+          ...campaign,
+          collectedAmount: safeCollectedAmount,
+          donationCount: safeDonationCount,
+          progress: calculateProgress(safeCollectedAmount, campaign.targetAmount),
+        };
+      })
+    );
+  }
+
+  function openEditDonationDialog(donation: DashboardDonationItem) {
+    setActionError("");
+    setEditDonation({
+      donationId: donation.id,
+      donorName: donation.isAnonymous ? "" : donation.donorName,
+      donorEmail: donation.donorEmail ?? "",
+      donorPhone: donation.donorPhone ?? "",
+      amount: String(donation.amount),
+      message: donation.message ?? "",
+      isAnonymous: donation.isAnonymous,
+      campaignId: donation.campaignId ?? "__general__",
+    });
   }
 
   const donationStats = useMemo(() => {
@@ -218,14 +299,6 @@ export function DashboardDonationManagement({
   }, [campaignDateSort, campaigns, search, showExpiredCampaigns]);
 
   async function handleApproveDonation(donation: DashboardDonationItem) {
-    const confirmed = window.confirm(
-      `Approve donasi ${donation.orderId} sebesar ${formatCurrency(donation.amount)}?`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     setActionError("");
     setApprovingDonationId(donation.id);
 
@@ -273,16 +346,11 @@ export function DashboardDonationManagement({
       setActionError(error instanceof Error ? error.message : "Gagal meng-approve donasi.");
     } finally {
       setApprovingDonationId(null);
+      setActionDialog(null);
     }
   }
 
   async function handleDeleteDonation(donation: DashboardDonationItem) {
-    const confirmed = window.confirm(`Hapus donasi ${donation.orderId}?`);
-
-    if (!confirmed) {
-      return;
-    }
-
     setActionError("");
     setDeletingDonationId(donation.id);
 
@@ -296,6 +364,7 @@ export function DashboardDonationManagement({
         throw new Error(result?.message || "Gagal menghapus donasi.");
       }
 
+      updateCampaignTotals(donation, null);
       setDonations((prev) => prev.filter((item) => item.id !== donation.id));
 
       toast.success("Donasi berhasil dihapus.");
@@ -303,6 +372,105 @@ export function DashboardDonationManagement({
       setActionError(error instanceof Error ? error.message : "Gagal menghapus donasi.");
     } finally {
       setDeletingDonationId(null);
+      setActionDialog(null);
+    }
+  }
+
+  async function handleEditDonation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editDonation) {
+      return;
+    }
+
+    const donation = donations.find((item) => item.id === editDonation.donationId);
+    if (!donation) {
+      setActionError("Donasi tidak ditemukan.");
+      setEditDonation(null);
+      return;
+    }
+
+    const donorName = editDonation.donorName.trim();
+    const donorEmail = editDonation.donorEmail.trim();
+    const donorPhone = editDonation.donorPhone.trim();
+    const amount = Number(editDonation.amount);
+    const campaignId = editDonation.campaignId === "__general__" ? "" : editDonation.campaignId;
+    const message = editDonation.message.trim();
+
+    if (!editDonation.isAnonymous && donorName.length < 2) {
+      setActionError("Nama donatur minimal 2 karakter.");
+      return;
+    }
+
+    if (!Number.isFinite(amount) || amount < 10000) {
+      setActionError("Nominal donasi minimal Rp 10.000.");
+      return;
+    }
+
+    setActionError("");
+    setEditingDonationId(donation.id);
+
+    try {
+      const response = await fetch(`/api/donations/${donation.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          donorName: editDonation.isAnonymous ? undefined : donorName,
+          donorEmail: donorEmail || undefined,
+          donorPhone: donorPhone || undefined,
+          amount,
+          campaignId: campaignId || undefined,
+          message: message || undefined,
+          isAnonymous: editDonation.isAnonymous,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "Gagal memperbarui donasi.");
+      }
+
+      const updatedData = result.data as {
+        id: string;
+        orderId: string;
+        donorName: string;
+        donorEmail: string | null;
+        donorPhone: string | null;
+        amount: number;
+        message: string | null;
+        isAnonymous: boolean;
+        paymentType: string | null;
+        status: DashboardDonationItem["status"];
+        createdAt: string;
+        campaign: { id: string; title: string } | null;
+      };
+
+      const updatedDonation: DashboardDonationItem = {
+        id: updatedData.id,
+        orderId: updatedData.orderId,
+        donorName: updatedData.isAnonymous ? "Hamba Allah" : updatedData.donorName,
+        donorEmail: updatedData.donorEmail,
+        donorPhone: updatedData.donorPhone,
+        amount: updatedData.amount,
+        message: updatedData.message,
+        isAnonymous: updatedData.isAnonymous,
+        paymentType: updatedData.paymentType,
+        status: updatedData.status,
+        createdAt: updatedData.createdAt,
+        campaignId: updatedData.campaign?.id ?? null,
+        campaignTitle: updatedData.campaign?.title ?? null,
+      };
+
+      updateCampaignTotals(donation, updatedDonation);
+      setDonations((prev) =>
+        prev.map((item) => (item.id === updatedDonation.id ? updatedDonation : item))
+      );
+      setEditDonation(null);
+      toast.success("Donasi berhasil diperbarui.");
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Gagal memperbarui donasi.");
+    } finally {
+      setEditingDonationId(null);
     }
   }
 
@@ -357,7 +525,11 @@ export function DashboardDonationManagement({
         id: string;
         orderId: string;
         donorName: string;
+        donorEmail: string | null;
+        donorPhone: string | null;
         amount: number;
+        message: string | null;
+        isAnonymous: boolean;
         paymentType: string | null;
         status: DashboardDonationItem["status"];
         createdAt: string;
@@ -368,8 +540,12 @@ export function DashboardDonationManagement({
         {
           id: created.id,
           orderId: created.orderId,
-          donorName: isAnonymous ? "Hamba Allah" : created.donorName,
+          donorName: created.isAnonymous ? "Hamba Allah" : created.donorName,
+          donorEmail: created.donorEmail,
+          donorPhone: created.donorPhone,
           amount: created.amount,
+          message: created.message,
+          isAnonymous: created.isAnonymous,
           paymentType: created.paymentType,
           status: created.status,
           createdAt: created.createdAt,
@@ -592,7 +768,6 @@ export function DashboardDonationManagement({
 
       {isCampaignMode ? (
       <section className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold">Daftar Kampanye</h2>
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full sm:max-w-md">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -816,27 +991,51 @@ export function DashboardDonationManagement({
                     </td>
                     <td className="p-4">{formatDateTime(donation.createdAt)}</td>
                     <td className="p-4 text-right">
-                      {donation.status === "PENDING" ? (
                         <div className="flex justify-end gap-2">
                           <Button
-                            size="sm"
-                            disabled={approvingDonationId === donation.id}
-                            onClick={() => handleApproveDonation(donation)}
-                          >
-                            {approvingDonationId === donation.id ? "Mencentang..." : "Centang"}
-                          </Button>
-                          <Button
-                            size="sm"
+                            size="icon-sm"
                             variant="outline"
-                            disabled={deletingDonationId === donation.id}
-                            onClick={() => handleDeleteDonation(donation)}
+                            disabled={editingDonationId === donation.id}
+                            onClick={() => openEditDonationDialog(donation)}
+                            aria-label={`Edit donasi ${donation.orderId}`}
+                            title="Edit donasi"
                           >
-                            {deletingDonationId === donation.id ? "Menghapus..." : "Hapus"}
+                            {editingDonationId === donation.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Pencil className="h-4 w-4" />
+                            )}
+                          </Button>
+                          {donation.status === "PENDING" ? (
+                          <Button
+                            size="icon-sm"
+                            disabled={approvingDonationId === donation.id}
+                            onClick={() => setActionDialog({ type: "approve", donation })}
+                            aria-label={`Centang donasi ${donation.orderId}`}
+                            title="Centang donasi"
+                          >
+                            {approvingDonationId === donation.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
+                          </Button>
+                          ) : null}
+                          <Button
+                            size="icon-sm"
+                            variant="destructive"
+                            disabled={deletingDonationId === donation.id}
+                            onClick={() => setActionDialog({ type: "delete", donation })}
+                            aria-label={`Hapus donasi ${donation.orderId}`}
+                            title="Hapus donasi"
+                          >
+                            {deletingDonationId === donation.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                           </Button>
                         </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
                     </td>
                   </tr>
                 ))
@@ -844,6 +1043,206 @@ export function DashboardDonationManagement({
             </tbody>
           </table>
         </div>
+
+        <AlertDialog open={actionDialog !== null} onOpenChange={(open) => !open && setActionDialog(null)}>
+          <AlertDialogContent className="max-w-md p-6">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {actionDialog?.type === "approve" ? "Approve donasi?" : "Hapus donasi?"}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {actionDialog
+                  ? actionDialog.type === "approve"
+                    ? `Donasi ${actionDialog.donation.orderId} sebesar ${formatCurrency(
+                        actionDialog.donation.amount
+                      )} akan ditandai berhasil.`
+                    : `Donasi ${actionDialog.donation.orderId} akan dihapus permanen dari daftar.`
+                  : ""}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                disabled={
+                  (actionDialog?.type === "approve" &&
+                    approvingDonationId === actionDialog.donation.id) ||
+                  (actionDialog?.type === "delete" &&
+                    deletingDonationId === actionDialog.donation.id)
+                }
+              >
+                Batal
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className={actionDialog?.type === "delete" ? "bg-destructive text-white hover:bg-destructive/90" : undefined}
+                disabled={
+                  actionDialog === null ||
+                  (actionDialog.type === "approve" &&
+                    approvingDonationId === actionDialog.donation.id) ||
+                  (actionDialog.type === "delete" &&
+                    deletingDonationId === actionDialog.donation.id)
+                }
+                onClick={(event) => {
+                  event.preventDefault();
+
+                  if (!actionDialog) {
+                    return;
+                  }
+
+                  if (actionDialog.type === "approve") {
+                    void handleApproveDonation(actionDialog.donation);
+                    return;
+                  }
+
+                  void handleDeleteDonation(actionDialog.donation);
+                }}
+              >
+                {actionDialog?.type === "approve"
+                  ? approvingDonationId === actionDialog.donation.id
+                    ? "Menyimpan..."
+                    : "Approve"
+                  : deletingDonationId === actionDialog?.donation.id
+                    ? "Menghapus..."
+                    : "Hapus"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <Dialog open={editDonation !== null} onOpenChange={(open) => !open && setEditDonation(null)}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Edit Donasi</DialogTitle>
+              <DialogDescription>
+                Ubah data donatur, nominal, dan kampanye yang terkait.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form className="grid gap-4 md:grid-cols-2" onSubmit={handleEditDonation}>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Nama Donatur</label>
+                <input
+                  name="donorName"
+                  required={!editDonation?.isAnonymous}
+                  minLength={editDonation?.isAnonymous ? undefined : 2}
+                  disabled={editDonation?.isAnonymous || editingDonationId !== null}
+                  value={editDonation?.donorName ?? ""}
+                  onChange={(event) =>
+                    setEditDonation((prev) => (prev ? { ...prev, donorName: event.target.value } : prev))
+                  }
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  placeholder={editDonation?.isAnonymous ? "Akan disimpan sebagai Hamba Allah" : "Nama donatur"}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Nominal</label>
+                <input
+                  type="number"
+                  name="amount"
+                  required
+                  min={10000}
+                  disabled={editingDonationId !== null}
+                  value={editDonation?.amount ?? ""}
+                  onChange={(event) =>
+                    setEditDonation((prev) => (prev ? { ...prev, amount: event.target.value } : prev))
+                  }
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  placeholder="100000"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Email</label>
+                <input
+                  type="email"
+                  name="donorEmail"
+                  disabled={editingDonationId !== null}
+                  value={editDonation?.donorEmail ?? ""}
+                  onChange={(event) =>
+                    setEditDonation((prev) => (prev ? { ...prev, donorEmail: event.target.value } : prev))
+                  }
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  placeholder="opsional"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Nomor HP</label>
+                <input
+                  name="donorPhone"
+                  disabled={editingDonationId !== null}
+                  value={editDonation?.donorPhone ?? ""}
+                  onChange={(event) =>
+                    setEditDonation((prev) => (prev ? { ...prev, donorPhone: event.target.value } : prev))
+                  }
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  placeholder="opsional"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Kampanye</label>
+                <Select
+                  value={editDonation?.campaignId ?? "__general__"}
+                  onValueChange={(value) =>
+                    setEditDonation((prev) => (prev ? { ...prev, campaignId: value } : prev))
+                  }
+                  disabled={editingDonationId !== null}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih kampanye" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__general__">Donasi Umum</SelectItem>
+                    {campaigns.map((campaign) => (
+                      <SelectItem key={campaign.id} value={campaign.id}>
+                        {campaign.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-medium">Catatan</label>
+                <textarea
+                  name="message"
+                  rows={3}
+                  disabled={editingDonationId !== null}
+                  value={editDonation?.message ?? ""}
+                  onChange={(event) =>
+                    setEditDonation((prev) => (prev ? { ...prev, message: event.target.value } : prev))
+                  }
+                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  placeholder="Catatan transfer manual, sumber donasi, dll"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm md:col-span-2">
+                <input
+                  type="checkbox"
+                  name="isAnonymous"
+                  checked={editDonation?.isAnonymous ?? false}
+                  disabled={editingDonationId !== null}
+                  onChange={(event) =>
+                    setEditDonation((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            isAnonymous: event.target.checked,
+                            donorName: event.target.checked ? "" : prev.donorName,
+                          }
+                        : prev
+                    )
+                  }
+                  className="rounded border-input"
+                />
+                <span>Tampilkan sebagai Hamba Allah</span>
+              </label>
+              <div className="flex justify-end gap-3 md:col-span-2">
+                <Button type="button" variant="outline" disabled={editingDonationId !== null} onClick={() => setEditDonation(null)}>
+                  Batal
+                </Button>
+                <Button type="submit" disabled={editingDonationId !== null}>
+                  {editingDonationId !== null ? "Menyimpan..." : "Simpan Perubahan"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </section>
       ) : null}
     </div>

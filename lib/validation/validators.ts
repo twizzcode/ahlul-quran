@@ -67,6 +67,24 @@ export const createManualDonationSchema = z.object({
   }
 });
 
+export const updateManualDonationSchema = z.object({
+  donorName: z.string().trim().optional(),
+  donorEmail: z.string().email("Email tidak valid").optional(),
+  donorPhone: z.string().optional(),
+  amount: z.number().min(10000, "Minimal donasi Rp 10.000"),
+  message: z.string().optional(),
+  isAnonymous: z.boolean().default(false),
+  campaignId: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (!data.isAnonymous && (!data.donorName || data.donorName.trim().length < 2)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["donorName"],
+      message: "Nama minimal 2 karakter",
+    });
+  }
+});
+
 // ============================================================
 // Campaign Validators
 // ============================================================
