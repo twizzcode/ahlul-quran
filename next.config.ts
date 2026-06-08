@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ['lvh.me', 'admin.lvh.me'],
+  allowedDevOrigins: ['lvh.me', 'admin.lvh.me','masjidsemilyartangan.com', 'admin.masjidsemilyartangan.com'],
   turbopack: {
     root: process.cwd(),
   },
