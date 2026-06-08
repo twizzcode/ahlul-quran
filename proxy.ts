@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPublicHost, isAdminHost } from "@/lib/routing/domain-routing";
 
 function getPublicUrl(request: NextRequest) {
   const url = request.nextUrl.clone();
-  url.hostname = "lvh.me";
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? request.nextUrl.host;
+  const publicHost = getPublicHost(host);
+  const [hostname, port] = publicHost.split(":");
+
+  url.hostname = hostname;
+  url.port = port ?? "";
   url.pathname = "/";
   url.search = "";
   return url;
@@ -10,7 +16,12 @@ function getPublicUrl(request: NextRequest) {
 
 async function canAccessAdmin(request: NextRequest) {
   const checkUrl = request.nextUrl.clone();
-  checkUrl.hostname = "lvh.me";
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? request.nextUrl.host;
+  const publicHost = getPublicHost(host);
+  const [hostname, port] = publicHost.split(":");
+
+  checkUrl.hostname = hostname;
+  checkUrl.port = port ?? "";
   checkUrl.pathname = "/api/admin-access";
   checkUrl.search = "";
 
@@ -30,7 +41,6 @@ async function canAccessAdmin(request: NextRequest) {
 
 export async function proxy(request: NextRequest) {
   const host = request.headers.get("host") || "";
-  const hostname = host.split(":")[0];
   const pathname = request.nextUrl.pathname;
   const isPublicAsset = /\.[a-z0-9]+$/i.test(pathname);
 
@@ -46,7 +56,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isAdminSubdomain = hostname === "admin.lvh.me";
+  const isAdminSubdomain = isAdminHost(host);
 
   if (isAdminSubdomain) {
     const allowed = await canAccessAdmin(request);
