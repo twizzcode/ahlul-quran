@@ -8,6 +8,7 @@ import { getPublicArticleType, publicArticleSelect } from "@/lib/content/public-
 import { stripHtmlTags } from "@/lib/content/article-content";
 import { isDashboardRole } from "@/lib/auth/user-roles";
 import { getMasjidProfileData } from "@/lib/masjid/masjid-profile.server";
+import { buildOrigin, getAdminHost } from "@/lib/routing/domain-routing";
 import { db } from "@/src";
 import { user as userTable } from "@/src/db/schema";
 import { formatDate, truncateText } from "@/lib/utils";
@@ -55,8 +56,7 @@ export default async function HomeLayout({
         },
       })
     : null;
-  const port = host.includes(":") ? `:${host.split(":")[1]}` : "";
-  const adminUrl = `${protocol}://admin.lvh.me${port}`;
+  const adminUrl = buildOrigin(protocol, getAdminHost(host));
   const user = session?.user
     ? {
         name: session.user.name,
