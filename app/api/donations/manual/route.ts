@@ -1,5 +1,7 @@
 import { eq } from "drizzle-orm";
 import { getAdminRequestContext } from "@/lib/auth/admin-session";
+import { getManualBankTransferDetails } from "@/lib/donation/manual-bank-transfer";
+import { getMasjidProfileData } from "@/lib/masjid/masjid-profile.server";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { db } from "@/src";
 import { donation, donationCampaign } from "@/src/db/schema";
@@ -14,6 +16,8 @@ export async function POST(request: Request) {
   const amount = Number(payload.amount);
   const isAnonymous = Boolean(payload.isAnonymous);
   const donorName = isAnonymous ? "Hamba Allah" : String(payload.donorName ?? "").trim();
+  const profile = await getMasjidProfileData();
+  const manualTransfer = getManualBankTransferDetails(profile);
 
   if ((!isAnonymous && donorName.length < 2) || !Number.isFinite(amount) || amount < 10000) {
     return apiError("Data donasi manual tidak valid.", 400);
@@ -30,6 +34,9 @@ export async function POST(request: Request) {
     isAnonymous,
     status: "SUCCESS",
     paymentType: "manual_bsi_transfer",
+    bankName: manualTransfer.bankName,
+    bankAccount: manualTransfer.bankAccount,
+    bankHolder: manualTransfer.bankHolder,
     paidAt: new Date(),
     userId: context.user.id,
     campaignId: payload.campaignId ? String(payload.campaignId).trim() : null,

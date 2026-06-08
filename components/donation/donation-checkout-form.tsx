@@ -123,6 +123,7 @@ export function DonationCheckoutForm({
       id: `bank-${index}`,
       type: "bank" as const,
       title: account.bankName,
+      description: `Transfer ke rekening ${account.bankHolder}`,
       logoUrl: account.logoUrl || getBankOptionByLabel(account.bankName)?.logoUrl || "",
       bankAccount: account.bankAccount,
       bankHolder: account.bankHolder,
@@ -133,6 +134,7 @@ export function DonationCheckoutForm({
             id: "qris",
             type: "qris" as const,
             title: "QRIS",
+            description: `Bayar ke ${campaign.qrisHolderName || "merchant QRIS"}`,
             logoUrl: campaign.logoUrl,
           },
         ]
@@ -419,6 +421,7 @@ export function DonationCheckoutForm({
                       </div>
                       <div className="min-w-0">
                         <p className="font-semibold text-emerald-950">{method.title}</p>
+                        <p className="text-sm text-emerald-900/65">{method.description}</p>
                       </div>
                     </button>
                   ))

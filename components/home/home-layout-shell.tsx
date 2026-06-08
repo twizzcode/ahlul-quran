@@ -40,7 +40,7 @@ export function HomeLayoutShell({ children, profile, user, featuredNews }: HomeL
         <PageContentMotion>{children}</PageContentMotion>
       </main>
       {!hideChrome && <SiteFooter profile={profile} />}
-      {!hideMobileDock && <HomeMobileDock user={user} />}
+      {!hideMobileDock && <HomeMobileDock />}
     </div>
   );
 }

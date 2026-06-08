@@ -95,6 +95,9 @@ export async function POST(request: Request) {
       isAnonymous: data.isAnonymous,
       status: "PENDING",
       paymentType: isQris ? "manual_qris" : "manual_bank_transfer",
+      bankName: selectedBankSnapshot?.bankName || null,
+      bankAccount: selectedBankSnapshot?.bankAccount || null,
+      bankHolder: selectedBankSnapshot?.bankHolder || null,
       userId: session?.user?.id || null,
       campaignId: campaign?.id || null,
     });

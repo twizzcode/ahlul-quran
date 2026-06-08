@@ -92,6 +92,13 @@
       "when": 1780023370985,
       "tag": "0012_loving_juggernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1780880400000,
+      "tag": "0015_donation_bank_snapshot",
+      "breakpoints": true
     }
   ]
 }

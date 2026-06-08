@@ -34,7 +34,7 @@ export function DashboardShell({
       >
         <AppSidebar />
         <SidebarInset className="bg-[#f6f8f6]">
-          <main className="flex-1 px-4 pb-4 pt-0 md:px-6 md:pb-6 md:pt-0">{children}</main>
+          <main className="flex-1 px-4 py-4 md:px-6 md:py-6">{children}</main>
         </SidebarInset>
       </SidebarProvider>
     </DashboardProvider>

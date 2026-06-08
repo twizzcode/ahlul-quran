@@ -8,12 +8,6 @@ import {
   AvatarGroupCount,
   AvatarImage,
 } from "@/components/ui/avatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import Image from "next/image";
 import Link from "next/link";
 import dbQuery from "@/lib/data/db-query";
@@ -436,48 +430,34 @@ export default async function HomePage() {
                           <div className="mt-3 flex items-center justify-between gap-3">
                             <div className="flex min-w-0 items-center">
                               {visibleSupporters.length > 0 ? (
-                                <TooltipProvider>
-                                  <AvatarGroup className="-space-x-1.5">
-                                    {visibleSupporters.map((supporter, index) => (
-                                      <Tooltip key={`${supporter.name}-${index}`}>
-                                        <TooltipTrigger asChild>
-                                          <div>
-                                            <Avatar
-                                              size="sm"
-                                              className="size-5 ring-1 ring-white transition-transform hover:z-10 hover:scale-110"
-                                            >
-                                              <AvatarImage
-                                                src={buildAvatarDataUri(supporter.name, index)}
-                                                alt={supporter.name}
-                                              />
-                                              <AvatarFallback className="bg-slate-700 text-[8px] font-semibold text-white">
-                                                {getInitials(supporter.name)}
-                                              </AvatarFallback>
-                                            </Avatar>
-                                          </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top" sideOffset={8}>
-                                          <p className="font-semibold">{supporter.name}</p>
-                                          <p>{formatCurrency(supporter.amount)}</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    ))}
-                                    {extraSupporters > 0 ? (
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <div>
-                                            <AvatarGroupCount className="size-5 bg-slate-500 text-[7px] font-semibold text-white ring-1 ring-white">
-                                              +{extraSupporters}
-                                            </AvatarGroupCount>
-                                          </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top" sideOffset={8}>
-                                          <p>Donatur lainnya</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    ) : null}
-                                  </AvatarGroup>
-                                </TooltipProvider>
+                                <AvatarGroup className="-space-x-1.5">
+                                  {visibleSupporters.map((supporter, index) => (
+                                    <div
+                                      key={`${supporter.name}-${index}`}
+                                      title={`${supporter.name} • ${formatCurrency(supporter.amount)}`}
+                                    >
+                                      <Avatar
+                                        size="sm"
+                                        className="size-5 ring-1 ring-white transition-transform hover:z-10 hover:scale-110"
+                                      >
+                                        <AvatarImage
+                                          src={buildAvatarDataUri(supporter.name, index)}
+                                          alt={supporter.name}
+                                        />
+                                        <AvatarFallback className="bg-slate-700 text-[8px] font-semibold text-white">
+                                          {getInitials(supporter.name)}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                    </div>
+                                  ))}
+                                  {extraSupporters > 0 ? (
+                                    <div title="Donatur lainnya">
+                                      <AvatarGroupCount className="size-5 bg-slate-500 text-[7px] font-semibold text-white ring-1 ring-white">
+                                        +{extraSupporters}
+                                      </AvatarGroupCount>
+                                    </div>
+                                  ) : null}
+                                </AvatarGroup>
                               ) : (
                                 <Avatar size="sm" className="size-5 ring-1 ring-white">
                                   <AvatarFallback className="bg-slate-700 text-[8px] font-semibold text-white">

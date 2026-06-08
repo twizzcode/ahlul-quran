@@ -91,6 +91,9 @@ export type DashboardDonationItem = {
   message: string | null;
   isAnonymous: boolean;
   paymentType: string | null;
+  bankName: string | null;
+  bankAccount: string | null;
+  bankHolder: string | null;
   status: "PENDING" | "SUCCESS" | "FAILED" | "EXPIRED" | "CHALLENGE" | "CANCELED";
   createdAt: string;
   campaignId: string | null;
@@ -152,6 +155,20 @@ function getDateRange() {
 function calculateProgress(collectedAmount: number, targetAmount: number) {
   if (!targetAmount || targetAmount <= 0) return 0;
   return Math.min(100, Math.round((collectedAmount / targetAmount) * 100));
+}
+
+function getPaymentMethodLabel(donation: Pick<DashboardDonationItem, "paymentType" | "bankName">) {
+  const normalized = (donation.paymentType ?? "").toLowerCase();
+
+  if (normalized.includes("qris")) {
+    return "QRIS";
+  }
+
+  if (normalized.includes("transfer")) {
+    return donation.bankName ? `Transfer Bank ${donation.bankName}` : "Transfer Bank";
+  }
+
+  return donation.paymentType || "-";
 }
 
 export function DashboardDonationManagement({
@@ -440,6 +457,9 @@ export function DashboardDonationManagement({
         message: string | null;
         isAnonymous: boolean;
         paymentType: string | null;
+        bankName: string | null;
+        bankAccount: string | null;
+        bankHolder: string | null;
         status: DashboardDonationItem["status"];
         createdAt: string;
         campaign: { id: string; title: string } | null;
@@ -455,6 +475,9 @@ export function DashboardDonationManagement({
         message: updatedData.message,
         isAnonymous: updatedData.isAnonymous,
         paymentType: updatedData.paymentType,
+        bankName: updatedData.bankName,
+        bankAccount: updatedData.bankAccount,
+        bankHolder: updatedData.bankHolder,
         status: updatedData.status,
         createdAt: updatedData.createdAt,
         campaignId: updatedData.campaign?.id ?? null,
@@ -531,6 +554,9 @@ export function DashboardDonationManagement({
         message: string | null;
         isAnonymous: boolean;
         paymentType: string | null;
+        bankName: string | null;
+        bankAccount: string | null;
+        bankHolder: string | null;
         status: DashboardDonationItem["status"];
         createdAt: string;
         campaign: { id: string; title: string } | null;
@@ -547,6 +573,9 @@ export function DashboardDonationManagement({
           message: created.message,
           isAnonymous: created.isAnonymous,
           paymentType: created.paymentType,
+          bankName: created.bankName,
+          bankAccount: created.bankAccount,
+          bankHolder: created.bankHolder,
           status: created.status,
           createdAt: created.createdAt,
           campaignId: created.campaign?.id ?? null,
@@ -979,7 +1008,7 @@ export function DashboardDonationManagement({
                     <td className="p-4 text-right font-semibold">
                       {formatCurrency(donation.amount)}
                     </td>
-                    <td className="p-4">{donation.paymentType || "-"}</td>
+                    <td className="p-4">{getPaymentMethodLabel(donation)}</td>
                     <td className="p-4">
                       <span
                         className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${getStatusClass(

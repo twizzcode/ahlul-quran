@@ -16,6 +16,9 @@ type DonationDetail = {
   amount: number;
   status: "SUCCESS" | "PENDING" | "FAILED" | "EXPIRED" | "CHALLENGE" | "CANCELED";
   paymentType: string | null;
+  bankName?: string | null;
+  bankAccount?: string | null;
+  bankHolder?: string | null;
   createdAt: string;
   paidAt: string | null;
   qrisImageUrl?: string | null;
@@ -24,20 +27,20 @@ type DonationDetail = {
 
 function isManualBankTransfer(paymentType: string | null) {
   const normalized = (paymentType ?? "").toLowerCase();
-  return normalized.includes("bank_transfer") || normalized.includes("manual_bank");
+  return normalized.includes("transfer") && !normalized.includes("qris");
 }
 
 function isQrisPayment(paymentType: string | null) {
   return (paymentType ?? "").toLowerCase().includes("qris");
 }
 
-function getPaymentMethodLabel(paymentType: string | null) {
+function getPaymentMethodLabel(paymentType: string | null, bankName: string) {
   if (isQrisPayment(paymentType)) {
     return "QRIS";
   }
 
   if (isManualBankTransfer(paymentType)) {
-    return "Transfer Bank";
+    return bankName ? `Transfer Bank ${bankName}` : "Transfer Bank";
   }
 
   return paymentType ?? "-";
@@ -172,6 +175,9 @@ export function DonationStatusClient({
   const showManualTransferPanel =
     donation?.status === "PENDING" && isManualBankTransfer(donation.paymentType);
   const showQrisPanel = donation?.status === "PENDING" && isQrisPayment(donation.paymentType);
+  const resolvedBankName = donation?.bankName || bankName;
+  const resolvedBankAccount = donation?.bankAccount || bankAccount;
+  const resolvedBankHolder = donation?.bankHolder || bankHolder;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 pb-14 pt-[calc(var(--home-nav-height)+1rem)] md:px-0">
@@ -245,15 +251,15 @@ export function DonationStatusClient({
                   <div className="space-y-4 rounded-[28px] border border-emerald-100 bg-emerald-50/50 p-6">
                     <div className="flex justify-between gap-4">
                       <span className="text-slate-500">Bank</span>
-                      <span className="text-right font-semibold text-emerald-950">{bankName || "-"}</span>
+                      <span className="text-right font-semibold text-emerald-950">{resolvedBankName || "-"}</span>
                     </div>
                     <div className="flex justify-between gap-4">
                       <span className="text-slate-500">No. Rekening</span>
-                      <span className="text-right font-semibold text-emerald-950">{bankAccount || "-"}</span>
+                      <span className="text-right font-semibold text-emerald-950">{resolvedBankAccount || "-"}</span>
                     </div>
                     <div className="flex justify-between gap-4">
                       <span className="text-slate-500">Atas Nama</span>
-                      <span className="text-right font-semibold text-emerald-950">{bankHolder || "-"}</span>
+                      <span className="text-right font-semibold text-emerald-950">{resolvedBankHolder || "-"}</span>
                     </div>
                   </div>
                 </section>
@@ -285,7 +291,9 @@ export function DonationStatusClient({
                   </div>
                   <div className="flex justify-between gap-4">
                     <span className="text-slate-500">Metode</span>
-                    <span className="text-emerald-950">{getPaymentMethodLabel(donation.paymentType)}</span>
+                    <span className="text-emerald-950">
+                      {getPaymentMethodLabel(donation.paymentType, resolvedBankName)}
+                    </span>
                   </div>
                   <div className="flex justify-between gap-4">
                     <span className="text-slate-500">Dibuat</span>

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BookOpenText, ChevronDown, HandHeart, Newspaper } from "lucide-react";
 import {
   MobileNav,
@@ -120,7 +120,13 @@ export function HomeNavbar({
   featuredNews: FeaturedNews | null;
 }) {
   const { data: session } = useSession();
-  const user = session?.user
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  const sessionUser = session?.user
     ? {
         name: session.user.name,
         email: session.user.email,
@@ -128,7 +134,8 @@ export function HomeNavbar({
         canOpenAdmin: initialUser?.canOpenAdmin,
         adminUrl: initialUser?.adminUrl,
       }
-    : initialUser;
+    : null;
+  const user = isHydrated ? sessionUser ?? initialUser : initialUser;
   const [isNewsMenuOpen, setIsNewsMenuOpen] = useState(false);
   const [isProfileMegaOpen, setIsProfileMegaOpen] = useState(false);
 
@@ -344,6 +351,11 @@ export function HomeNavbar({
         <MobileNav className="group/home-nav fixed inset-x-0 top-0 z-[110] min-h-[var(--home-nav-height)] max-w-none rounded-none bg-white/95 px-4 text-emerald-900 shadow-sm backdrop-blur data-[scrolled=true]:bg-white">
           <MobileNavHeader>
             <Brand profile={profile} />
+            <AccountMenu
+              user={user}
+              canOpenAdmin={Boolean(user?.canOpenAdmin)}
+              adminUrl={user?.adminUrl}
+            />
           </MobileNavHeader>
         </MobileNav>
       </Navbar>
