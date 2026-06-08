@@ -11,6 +11,8 @@ export const auth = betterAuth({
   trustedOrigins: [
     "http://lvh.me:3000",
     "http://admin.lvh.me:3000",
+    "https://masjidsemilyartangan.com",
+    "https://admin.masjidsemilyartangan.com",
   ],
 
   advanced: {
