@@ -6,12 +6,14 @@ import { PageIntro } from "@/components/content/page-intro";
 import { Testimonial10 } from "@/components/testimonial10";
 import Timeline from "@/components/timeline";
 import { getMasjidProfileData } from "@/lib/masjid/masjid-profile.server";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Profil Markas Dakwah",
   description:
     "Profil Masjid Ahlul Qur'an, arah gerak pembangunan markas dakwah, struktur panitia, dan tahapan gerakan.",
-};
+  path: "/profil",
+});
 
 export const dynamic = "force-dynamic";
 

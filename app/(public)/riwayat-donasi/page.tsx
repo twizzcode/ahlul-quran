@@ -5,10 +5,17 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/auth";
 import dbQuery from "@/lib/data/db-query";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Riwayat Donasi",
-};
+  description: "Riwayat transaksi donasi pengguna yang login di website Masjid Semilyar Tangan.",
+  path: "/riwayat-donasi",
+  robots: {
+    index: false,
+    follow: false,
+  },
+});
 
 function getStatusMeta(status: string) {
   switch (status) {

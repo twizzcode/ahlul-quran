@@ -11,11 +11,13 @@ import {
 import { PageIntro } from "@/components/content/page-intro";
 import { Testimonial10 } from "@/components/testimonial10";
 import { getMasjidProfileData } from "@/lib/masjid/masjid-profile.server";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Program",
   description: "Program ibadah, dakwah, pendidikan, dan pemberdayaan umat Masjid Ahlul Qur'an",
-};
+  path: "/program",
+});
 
 const programHighlights = [
   {

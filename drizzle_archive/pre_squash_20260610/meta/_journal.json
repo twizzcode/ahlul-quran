@@ -1,0 +1,118 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1779441865099,
+      "tag": "0000_worried_sentinel",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779449474083,
+      "tag": "0001_cuddly_apocalypse",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779449492555,
+      "tag": "0002_pale_james_howlett",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779453260743,
+      "tag": "0003_lean_shaman",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779593344464,
+      "tag": "0004_cool_tombstone",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779597497131,
+      "tag": "0005_young_galactus",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779836102422,
+      "tag": "0006_abnormal_red_shift",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1780000000000,
+      "tag": "0007_mature_role_alignment",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1780272000000,
+      "tag": "0008_swift_donation_accounts",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1780275600000,
+      "tag": "0009_calm_qris_toggle",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1780362000000,
+      "tag": "0010_remove_midtrans_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1780459200000,
+      "tag": "0011_link_gallery_to_campaigns",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1780023370985,
+      "tag": "0012_loving_juggernaut",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1780621200000,
+      "tag": "0013_qris_icon_url",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1780707600000,
+      "tag": "0014_qris_holder_name",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1780880400000,
+      "tag": "0015_donation_bank_snapshot",
+      "breakpoints": true
+    }
+  ]
+}

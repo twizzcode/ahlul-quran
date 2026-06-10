@@ -6,6 +6,7 @@ import { DonationCheckoutForm } from "@/components/donation/donation-checkout-fo
 import { getMasjidProfileData } from "@/lib/masjid/masjid-profile.server";
 import { getManualBankTransferDetails } from "@/lib/donation/manual-bank-transfer";
 import dbQuery from "@/lib/data/db-query";
+import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,17 @@ export async function generateMetadata({
   });
 
   return {
-    title: campaign ? `Bayar Donasi - ${campaign.title}` : "Bayar Donasi",
+    ...createPageMetadata({
+      title: campaign ? `Bayar Donasi - ${campaign.title}` : "Bayar Donasi",
+      description: campaign
+        ? `Lanjutkan pembayaran untuk kampanye donasi ${campaign.title}.`
+        : "Lanjutkan pembayaran donasi.",
+      path: `/donasi/${slug}/bayar`,
+      robots: {
+        index: false,
+        follow: false,
+      },
+    }),
   };
 }
 

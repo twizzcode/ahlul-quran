@@ -2,10 +2,17 @@ import type { Metadata } from "next";
 import { DonationStatusClient } from "@/components/donation/donation-status-client";
 import { getMasjidProfileData } from "@/lib/masjid/masjid-profile.server";
 import { getManualBankTransferDetails } from "@/lib/donation/manual-bank-transfer";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Status Donasi",
-};
+  description: "Halaman status transaksi donasi untuk mengecek progres pembayaran atau konfirmasi donasi.",
+  path: "/donasi/status",
+  robots: {
+    index: false,
+    follow: false,
+  },
+});
 
 export default async function DonasiStatusPage({
   searchParams,

@@ -16,11 +16,13 @@ import dbQuery from "@/lib/data/db-query";
 import { getPublicArticleType, publicArticleSelect } from "@/lib/content/public-articles";
 import { formatDate, truncateText } from "@/lib/utils";
 import { stripHtmlTags } from "@/lib/content/article-content";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Artikel",
   description: "Baca artikel kajian, khutbah, dan materi pembinaan Masjid Ahlul Qur'an",
-};
+  path: "/artikel",
+});
 
 const PAGE_SIZE = 9;
 

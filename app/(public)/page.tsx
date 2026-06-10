@@ -20,6 +20,15 @@ import {
   Heart,
   ArrowRight,
 } from "lucide-react";
+import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Beranda",
+  description:
+    "Website resmi Masjid Semilyar Tangan untuk mengenal profil markas dakwah, membaca berita dan artikel, serta mendukung donasi program umat.",
+  path: "/",
+});
 
 // ============================================================
 // Homepage - masjidcontoh.com

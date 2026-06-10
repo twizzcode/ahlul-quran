@@ -19,6 +19,7 @@ import {
   sanitizeArticleHtml,
   stripHtmlTags,
 } from "@/lib/content/article-content";
+import { createPageMetadata } from "@/lib/seo";
 
 type BeritaDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -64,11 +65,11 @@ export async function generateMetadata({ params }: BeritaDetailPageProps): Promi
   const articleUrl = `/berita/${article.slug}`;
 
   return {
-    title: `${article.title} | Berita`,
-    description,
-    alternates: {
-      canonical: articleUrl,
-    },
+    ...createPageMetadata({
+      title: `${article.title} | Berita`,
+      description,
+      path: articleUrl,
+    }),
     openGraph: {
       title: article.title,
       description,

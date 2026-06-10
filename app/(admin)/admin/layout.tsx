@@ -14,6 +14,10 @@ export const metadata: Metadata = {
     template: "%s | Dashboard Masjid",
   },
   description: "Panel admin untuk mengelola website masjid",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 async function getPublicOrigin() {

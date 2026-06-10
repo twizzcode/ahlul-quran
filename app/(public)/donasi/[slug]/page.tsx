@@ -18,6 +18,7 @@ import { MobileDonationStickyBar } from "@/components/donation/mobile-donation-s
 import { Separator } from "@/components/ui/separator";
 import dbQuery from "@/lib/data/db-query";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -95,12 +96,21 @@ export async function generateMetadata({
   if (!campaign) {
     return {
       title: "Kampanye Donasi",
+      description: "Halaman detail kampanye donasi Masjid Semilyar Tangan.",
     };
   }
 
   return {
-    title: campaign.title,
-    description: campaign.description,
+    ...createPageMetadata({
+      title: campaign.title,
+      description: campaign.description,
+      path: `/donasi/${slug}`,
+      openGraph: {
+        title: campaign.title,
+        description: campaign.description,
+        url: `/donasi/${slug}`,
+      },
+    }),
   };
 }
 

@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import dbQuery from "@/lib/data/db-query";
 import { GalleryShowcase } from "@/components/content/gallery-showcase";
 import { PageIntro } from "@/components/content/page-intro";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Galeri",
   description: "Galeri foto kegiatan dan dokumentasi masjid",
-};
+  path: "/galeri",
+});
 
 export const dynamic = "force-dynamic";
 

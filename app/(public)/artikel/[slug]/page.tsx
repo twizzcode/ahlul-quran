@@ -19,6 +19,7 @@ import {
   sanitizeArticleHtml,
   stripHtmlTags,
 } from "@/lib/content/article-content";
+import { createPageMetadata } from "@/lib/seo";
 
 type ArtikelDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -64,11 +65,11 @@ export async function generateMetadata({ params }: ArtikelDetailPageProps): Prom
   const articleUrl = `/artikel/${article.slug}`;
 
   return {
-    title: `${article.title} | Masjid`,
-    description,
-    alternates: {
-      canonical: articleUrl,
-    },
+    ...createPageMetadata({
+      title: `${article.title} | Artikel`,
+      description,
+      path: articleUrl,
+    }),
     openGraph: {
       title: article.title,
       description,

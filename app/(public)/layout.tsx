@@ -12,15 +12,17 @@ import { buildOrigin, getAdminHost } from "@/lib/routing/domain-routing";
 import { db } from "@/src";
 import { user as userTable } from "@/src/db/schema";
 import { formatDate, truncateText } from "@/lib/utils";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: {
-    default: "Masjid Ahlul Qur'an - Website Resmi",
-    template: "%s | Masjid Ahlul Qur'an",
+    default: "Masjid Semilyar Tangan - Website Resmi",
+    template: "%s | Masjid Semilyar Tangan",
   },
   description:
-    "Website resmi Masjid Ahlul Qur'an - profil markas dakwah, kegiatan, donasi, dan gerakan umat.",
-};
+    "Website resmi Masjid Semilyar Tangan untuk profil markas dakwah, program, berita, artikel, dan donasi umat.",
+  path: "/",
+});
 
 export const dynamic = "force-dynamic";
 

@@ -16,11 +16,13 @@ import dbQuery from "@/lib/data/db-query";
 import { getPublicArticleType, publicArticleSelect } from "@/lib/content/public-articles";
 import { formatDate, truncateText } from "@/lib/utils";
 import { stripHtmlTags } from "@/lib/content/article-content";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Berita",
   description: "Ikuti berita terbaru, pengumuman, dan kabar gerakan Masjid Ahlul Qur'an",
-};
+  path: "/berita",
+});
 
 const PAGE_SIZE = 9;
 

@@ -40,11 +40,6 @@ export const BANK_OPTIONS: BankOption[] = [
     label: "Bank Muamalat",
     logoUrl: "/banks/muamalat.png",
   },
-  {
-    value: "cimb_niaga_syariah",
-    label: "CIMB Niaga Syariah",
-    logoUrl: "/banks/cimb-niaga-syariah.png",
-  },
 ];
 
 export function getBankOptionByValue(value: string) {

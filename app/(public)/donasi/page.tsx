@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import dbQuery from "@/lib/data/db-query";
 import { DonationPageClient, type DonationCampaignView, type DonationItemView } from "@/components/donation/donation-page-client";
 import type { DonorHighlightItem } from "@/components/shared/animated-tooltip-demo";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Donasi",
   description: "Berdonasi untuk kemajuan masjid dan program-program kebaikan.",
-};
+  path: "/donasi",
+});
 
 export const dynamic = "force-dynamic";
 
