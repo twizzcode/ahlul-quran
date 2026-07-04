@@ -23,7 +23,7 @@ export default async function GaleriPage() {
   });
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-[calc(var(--home-nav-height)+1rem)] md:px-0">
+    <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-[calc(var(--home-nav-height)+1rem)] sm:px-6 lg:px-8">
         <PageIntro
           className="mb-8"
           title="Galeri Foto"

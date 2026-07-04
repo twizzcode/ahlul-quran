@@ -72,7 +72,7 @@ export default async function DonationCampaignCheckoutPage({
   const manualTransfer = getManualBankTransferDetails(profile);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 pb-14 pt-[calc(var(--home-nav-height)+1rem)] md:px-0">
+    <div className="mx-auto w-full max-w-7xl px-4 pb-14 pt-[calc(var(--home-nav-height)+1rem)] sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-wrap items-center gap-2 text-sm text-slate-500">
         <Link href="/donasi" className="hover:text-slate-800">
           Donasi

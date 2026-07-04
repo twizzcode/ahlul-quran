@@ -87,7 +87,7 @@ export default async function RiwayatDonasiPage() {
     .reduce((sum, item) => sum + item.amount, 0);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 pb-14 pt-[calc(var(--home-nav-height)+1rem)] md:px-0">
+    <div className="mx-auto w-full max-w-7xl px-4 pb-14 pt-[calc(var(--home-nav-height)+1rem)] sm:px-6 lg:px-8">
       <section className="space-y-8 py-4">
         <div className="space-y-3 border-b border-emerald-100 pb-6">
           <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800">

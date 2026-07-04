@@ -213,7 +213,7 @@ export default async function DonationCampaignDetailPage({
   }));
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 pb-32 pt-[calc(var(--home-nav-height)+1rem)] md:px-0 lg:pb-14">
+    <div className="mx-auto w-full max-w-7xl px-4 pb-32 pt-[calc(var(--home-nav-height)+1rem)] sm:px-6 lg:px-8 lg:pb-14">
       <Button variant="ghost" asChild className="mb-6">
         <Link href="/donasi">
           <ArrowLeft className="mr-2 h-4 w-4" />

@@ -292,7 +292,7 @@ export default async function HomePage() {
         <div className="absolute inset-0 bg-[linear-gradient(112deg,rgba(8,76,53,0.68)_0%,rgba(8,76,53,0.38)_46%,rgba(8,76,53,0.14)_74%,rgba(8,76,53,0)_100%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(5,70,44,0.56)_0%,rgba(5,70,44,0.26)_28%,rgba(5,70,44,0)_56%)]" />
 
-        <div className="relative z-10 mx-auto flex h-full min-h-[calc(85vh-var(--home-nav-height))] w-full max-w-7xl items-center px-6">
+        <div className="relative z-10 mx-auto flex h-full min-h-[calc(85vh-var(--home-nav-height))] w-full max-w-7xl items-center px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
             <div className="flex flex-wrap gap-3">
               <p className="rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-100">
@@ -370,7 +370,7 @@ export default async function HomePage() {
 
       {/* ─── Program Donasi ─── */}
       <section className="pb-16 pt-24 sm:pb-20 sm:pt-32">
-        <div className="mx-auto w-full max-w-7xl px-6">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8 flex items-end justify-between gap-6">
             <div>
               <span className="text-sm font-semibold uppercase tracking-wider text-emerald-700">
@@ -505,7 +505,7 @@ export default async function HomePage() {
       <HomeContentTabs items={latestHomeContentItems} />
 
       <section className="pb-28 pt-24 sm:pb-32 sm:pt-36 lg:pt-40 xl:pt-44">
-        <div className="mx-auto w-full max-w-7xl px-6">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8 max-w-2xl">
             <span className="text-sm font-semibold uppercase tracking-wider text-emerald-700">
               Testimoni
@@ -524,7 +524,7 @@ export default async function HomePage() {
 
       {/* ─── CTA Donasi ─── */}
       <section className="pb-40 pt-28 sm:pb-48 sm:pt-32">
-        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-10 px-6 md:grid-cols-2 md:gap-16">
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-10 px-4 sm:px-6 lg:px-8 md:grid-cols-2 md:gap-16">
           <div className="max-w-xl">
             <h2 className="text-3xl font-bold tracking-tight text-balance text-emerald-950 md:text-4xl">
               {profile.homepageCtaTitle.trim() ||
@@ -563,7 +563,7 @@ export default async function HomePage() {
                       fill
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,12,10,0.22)_0%,rgba(2,12,10,0.38)_34%,rgba(2,12,10,0.86)_100%)]" />
+                    {/*<div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,12,10,0.22)_0%,rgba(2,12,10,0.38)_34%,rgba(2,12,10,0.86)_100%)]" />*/}
                     <div className="absolute inset-x-3 bottom-3">
                       <p className="text-sm font-semibold text-white">{item.title}</p>
                     </div>
@@ -582,7 +582,7 @@ export default async function HomePage() {
                       fill
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,12,10,0.22)_0%,rgba(2,12,10,0.38)_34%,rgba(2,12,10,0.86)_100%)]" />
+                    {/*<div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,12,10,0.22)_0%,rgba(2,12,10,0.38)_34%,rgba(2,12,10,0.86)_100%)]" />*/}
                     <div className="absolute inset-x-3 bottom-3">
                       <p className="text-sm font-semibold text-white">{item.title}</p>
                     </div>

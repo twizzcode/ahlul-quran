@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDays } from "lucide-react";
-import { format } from "date-fns";
+import { addYears, format, startOfDay, subYears } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -19,6 +19,9 @@ export function DatePickerField({
   placeholder = "Pilih tanggal",
 }: DatePickerFieldProps) {
   const selectedDate = value ? new Date(`${value}T00:00:00`) : undefined;
+  const currentDate = startOfDay(new Date());
+  const firstMonth = subYears(currentDate, 100);
+  const lastMonth = addYears(currentDate, 100);
   const label = selectedDate ? format(selectedDate, "dd MMMM yyyy") : placeholder;
 
   return (
@@ -37,7 +40,9 @@ export function DatePickerField({
         <Calendar
           mode="single"
           selected={selectedDate}
-          month={selectedDate}
+          defaultMonth={selectedDate ?? currentDate}
+          startMonth={firstMonth}
+          endMonth={lastMonth}
           captionLayout="dropdown"
           onSelect={(date) => {
             if (!date) {

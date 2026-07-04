@@ -155,7 +155,7 @@ export default async function BeritaDetailPage({ params }: BeritaDetailPageProps
   ];
 
   return (
-    <article className="mx-auto w-full max-w-7xl px-4 pb-12 pt-[calc(var(--home-nav-height)+1rem)] md:px-0">
+    <article className="mx-auto w-full max-w-7xl px-4 pb-12 pt-[calc(var(--home-nav-height)+1rem)] sm:px-6 lg:px-8">
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-14">
         <div>
           <header className="mb-8">
