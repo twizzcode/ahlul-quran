@@ -1,0 +1,142 @@
+name: Deploy Next.js to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      APP_NAME: masjid-semilyar-tangan
+      APP_DIR: /var/www/masjid-semilyar-tangan
+      APP_PORT: 3000
+
+      # Variabel yang dibutuhkan ketika next build
+      NEXT_PUBLIC_AUTH_URL: ${{ vars.NEXT_PUBLIC_AUTH_URL }}
+      NEXT_PUBLIC_ROOT_DOMAIN: ${{ vars.NEXT_PUBLIC_ROOT_DOMAIN }}
+
+      # Tambahkan secret build bila memang diperlukan.
+      # Jangan masukkan semua runtime secret kalau build tidak membutuhkannya.
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build application
+        run: bun run build
+
+      - name: Prepare deployment files
+        run: |
+          set -e
+
+          rm -rf deploy
+          mkdir -p deploy/.next
+
+          cp -a .next/standalone/. deploy/
+          cp -a .next/static deploy/.next/static
+
+          if [ -d "public" ]; then
+            cp -a public deploy/public
+          fi
+
+          tar -C deploy -czf release.tar.gz .
+
+      - name: Configure SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          set -e
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" \
+            >> ~/.ssh/known_hosts
+
+      - name: Upload release
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          scp \
+            -i ~/.ssh/deploy_key \
+            -P "$VPS_PORT" \
+            release.tar.gz \
+            "$VPS_USER@$VPS_HOST:/tmp/${APP_NAME}-${GITHUB_SHA}.tar.gz"
+
+      - name: Activate release
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          ssh \
+            -i ~/.ssh/deploy_key \
+            -p "$VPS_PORT" \
+            "$VPS_USER@$VPS_HOST" \
+            "APP_NAME='$APP_NAME' \
+             APP_DIR='$APP_DIR' \
+             APP_PORT='$APP_PORT' \
+             RELEASE_ID='$GITHUB_SHA' \
+             bash -s" <<'REMOTE_SCRIPT'
+
+          set -euo pipefail
+
+          RELEASE_DIR="$APP_DIR/releases/$RELEASE_ID"
+          ARCHIVE="/tmp/$APP_NAME-$RELEASE_ID.tar.gz"
+
+          mkdir -p "$RELEASE_DIR"
+          tar -xzf "$ARCHIVE" -C "$RELEASE_DIR"
+          rm -f "$ARCHIVE"
+
+          # Simpan .env di luar folder release.
+          if [ -f "$APP_DIR/.env" ]; then
+            ln -sfn "$APP_DIR/.env" "$RELEASE_DIR/.env"
+          fi
+
+          # Symlink current berpindah setelah release selesai diekstrak.
+          ln -sfn "$RELEASE_DIR" "$APP_DIR/current"
+
+          cd "$APP_DIR/current"
+
+          export NODE_ENV=production
+          export PORT="$APP_PORT"
+          export HOSTNAME=127.0.0.1
+
+          if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
+            pm2 restart "$APP_NAME" --update-env
+          else
+            pm2 start server.js \
+              --name "$APP_NAME" \
+              --time
+          fi
+
+          pm2 save
+
+          # Simpan lima release terbaru.
+          cd "$APP_DIR/releases"
+          ls -1dt */ 2>/dev/null | tail -n +6 | xargs -r rm -rf
+
+          REMOTE_SCRIPT
