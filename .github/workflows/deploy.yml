@@ -1,4 +1,4 @@
-name: Deploy Next.js to VPS
+name: Deploy Docker to VPS
 
 on:
   push:
@@ -12,51 +12,28 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment: Production
 
     env:
       APP_NAME: masjid-semilyar-tangan
-      APP_DIR: /var/www/masjid-semilyar-tangan
       APP_PORT: 3000
-
-      # Variabel yang dibutuhkan ketika next build
-      NEXT_PUBLIC_AUTH_URL: ${{ vars.NEXT_PUBLIC_AUTH_URL }}
-      NEXT_PUBLIC_ROOT_DOMAIN: ${{ vars.NEXT_PUBLIC_ROOT_DOMAIN }}
-
-      # Tambahkan secret build bila memang diperlukan.
-      # Jangan masukkan semua runtime secret kalau build tidak membutuhkannya.
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      IMAGE_NAME: masjid-semilyar-tangan:${{ github.sha }}
+      IMAGE_FILE: masjid-semilyar-tangan-${{ github.sha }}.tar
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build application
-        run: bun run build
-
-      - name: Prepare deployment files
+      - name: Build Docker image
         run: |
-          set -e
+          docker build \
+            --build-arg NEXT_PUBLIC_AUTH_URL="${{ vars.NEXT_PUBLIC_AUTH_URL }}" \
+            --build-arg NEXT_PUBLIC_ROOT_DOMAIN="${{ vars.NEXT_PUBLIC_ROOT_DOMAIN }}" \
+            --build-arg DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            -t "$IMAGE_NAME" \
+            .
 
-          rm -rf deploy
-          mkdir -p deploy/.next
-
-          cp -a .next/standalone/. deploy/
-          cp -a .next/static deploy/.next/static
-
-          if [ -d "public" ]; then
-            cp -a public deploy/public
-          fi
-
-          tar -C deploy -czf release.tar.gz .
+      - name: Save Docker image
+        run: docker save "$IMAGE_NAME" -o "$IMAGE_FILE"
 
       - name: Configure SSH
         env:
@@ -72,10 +49,9 @@ jobs:
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
-          ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" \
-            >> ~/.ssh/known_hosts
+          ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts
 
-      - name: Upload release
+      - name: Upload Docker image
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
@@ -84,10 +60,10 @@ jobs:
           scp \
             -i ~/.ssh/deploy_key \
             -P "$VPS_PORT" \
-            release.tar.gz \
-            "$VPS_USER@$VPS_HOST:/tmp/${APP_NAME}-${GITHUB_SHA}.tar.gz"
+            "$IMAGE_FILE" \
+            "$VPS_USER@$VPS_HOST:/tmp/$IMAGE_FILE"
 
-      - name: Activate release
+      - name: Run Docker container
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
@@ -96,60 +72,27 @@ jobs:
           ssh \
             -i ~/.ssh/deploy_key \
             -p "$VPS_PORT" \
-            -o BatchMode=yes \
             "$VPS_USER@$VPS_HOST" \
             "APP_NAME='$APP_NAME' \
-             APP_DIR='$APP_DIR' \
              APP_PORT='$APP_PORT' \
-             RELEASE_ID='$GITHUB_SHA' \
+             IMAGE_NAME='$IMAGE_NAME' \
+             IMAGE_FILE='$IMAGE_FILE' \
              bash -s" <<'REMOTE_SCRIPT'
-      
+
           set -euo pipefail
-      
-          RELEASE_DIR="$APP_DIR/releases/$RELEASE_ID"
-          ARCHIVE="/tmp/$APP_NAME-$RELEASE_ID.tar.gz"
-      
-          export NVM_DIR="$HOME/.nvm"
-      
-          if [ ! -s "$NVM_DIR/nvm.sh" ]; then
-            echo "NVM tidak ditemukan di $NVM_DIR"
-            exit 1
-          fi
-      
-          . "$NVM_DIR/nvm.sh"
-          nvm use 24
-      
-          echo "Node version: $(node --version)"
-          echo "PM2 version: $(pm2 --version)"
-      
-          mkdir -p "$RELEASE_DIR"
-          tar -xzf "$ARCHIVE" -C "$RELEASE_DIR"
-          rm -f "$ARCHIVE"
-      
-          if [ -f "$APP_DIR/.env" ]; then
-            ln -sfn "$APP_DIR/.env" "$RELEASE_DIR/.env"
-          fi
-      
-          ln -sfn "$RELEASE_DIR" "$APP_DIR/current"
-      
-          cd "$APP_DIR/current"
-      
-          export NODE_ENV=production
-          export PORT="$APP_PORT"
-          export HOSTNAME=127.0.0.1
-      
-          if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
-            pm2 restart "$APP_NAME" --update-env
-          else
-            pm2 start server.js \
-              --name "$APP_NAME" \
-              --interpreter "$(which node)" \
-              --time
-          fi
-      
-          pm2 save
-      
-          cd "$APP_DIR/releases"
-          ls -1dt */ 2>/dev/null | tail -n +6 | xargs -r rm -rf
-      
+
+          docker load -i "/tmp/$IMAGE_FILE"
+          rm -f "/tmp/$IMAGE_FILE"
+
+          docker rm -f "$APP_NAME" >/dev/null 2>&1 || true
+          docker run -d \
+            --name "$APP_NAME" \
+            --restart unless-stopped \
+            --env-file "/var/www/$APP_NAME/.env" \
+            -e PORT="$APP_PORT" \
+            -p "127.0.0.1:$APP_PORT:$APP_PORT" \
+            "$IMAGE_NAME"
+
+          docker image prune -f
+
           REMOTE_SCRIPT
