@@ -122,19 +122,42 @@ jobs:
 
           cd "$APP_DIR/current"
 
+          # Bun dan PM2 di-install pada user twizz.
+          export BUN_INSTALL="$HOME/.bun"
+          export PATH="$BUN_INSTALL/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+          
+          BUN_BIN="$BUN_INSTALL/bin/bun"
+          PM2_BIN="$BUN_INSTALL/bin/pm2"
+          
+          if [ ! -x "$BUN_BIN" ]; then
+            echo "Bun tidak ditemukan di $BUN_BIN"
+            exit 1
+          fi
+          
+          if [ ! -x "$PM2_BIN" ]; then
+            echo "PM2 tidak ditemukan di $PM2_BIN"
+            exit 1
+          fi
+          
+          echo "Bun version: $("$BUN_BIN" --version)"
+          echo "PM2 version: $("$PM2_BIN" --version)"
+          
           export NODE_ENV=production
           export PORT="$APP_PORT"
           export HOSTNAME=127.0.0.1
-
-          if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
-            pm2 restart "$APP_NAME" --update-env
+          
+          if "$PM2_BIN" describe "$APP_NAME" >/dev/null 2>&1; then
+            "$PM2_BIN" restart "$APP_NAME" \
+              --interpreter "$BUN_BIN" \
+              --update-env
           else
-            pm2 start server.js \
+            "$PM2_BIN" start server.js \
               --name "$APP_NAME" \
+              --interpreter "$BUN_BIN" \
               --time
           fi
-
-          pm2 save
+          
+          "$PM2_BIN" save
 
           # Simpan lima release terbaru.
           cd "$APP_DIR/releases"
