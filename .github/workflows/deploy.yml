@@ -12,6 +12,7 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment: Production
 
     env:
       APP_NAME: masjid-semilyar-tangan
