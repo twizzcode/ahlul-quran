@@ -96,71 +96,60 @@ jobs:
           ssh \
             -i ~/.ssh/deploy_key \
             -p "$VPS_PORT" \
+            -o BatchMode=yes \
             "$VPS_USER@$VPS_HOST" \
             "APP_NAME='$APP_NAME' \
              APP_DIR='$APP_DIR' \
              APP_PORT='$APP_PORT' \
              RELEASE_ID='$GITHUB_SHA' \
              bash -s" <<'REMOTE_SCRIPT'
-
+      
           set -euo pipefail
-
+      
           RELEASE_DIR="$APP_DIR/releases/$RELEASE_ID"
           ARCHIVE="/tmp/$APP_NAME-$RELEASE_ID.tar.gz"
-
+      
+          export NVM_DIR="$HOME/.nvm"
+      
+          if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+            echo "NVM tidak ditemukan di $NVM_DIR"
+            exit 1
+          fi
+      
+          . "$NVM_DIR/nvm.sh"
+          nvm use 24
+      
+          echo "Node version: $(node --version)"
+          echo "PM2 version: $(pm2 --version)"
+      
           mkdir -p "$RELEASE_DIR"
           tar -xzf "$ARCHIVE" -C "$RELEASE_DIR"
           rm -f "$ARCHIVE"
-
-          # Simpan .env di luar folder release.
+      
           if [ -f "$APP_DIR/.env" ]; then
             ln -sfn "$APP_DIR/.env" "$RELEASE_DIR/.env"
           fi
-
-          # Symlink current berpindah setelah release selesai diekstrak.
+      
           ln -sfn "$RELEASE_DIR" "$APP_DIR/current"
-
+      
           cd "$APP_DIR/current"
-
-          # Bun dan PM2 di-install pada user twizz.
-          export BUN_INSTALL="$HOME/.bun"
-          export PATH="$BUN_INSTALL/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
-          
-          BUN_BIN="$BUN_INSTALL/bin/bun"
-          PM2_BIN="$BUN_INSTALL/bin/pm2"
-          
-          if [ ! -x "$BUN_BIN" ]; then
-            echo "Bun tidak ditemukan di $BUN_BIN"
-            exit 1
-          fi
-          
-          if [ ! -x "$PM2_BIN" ]; then
-            echo "PM2 tidak ditemukan di $PM2_BIN"
-            exit 1
-          fi
-          
-          echo "Bun version: $("$BUN_BIN" --version)"
-          echo "PM2 version: $("$PM2_BIN" --version)"
-          
+      
           export NODE_ENV=production
           export PORT="$APP_PORT"
           export HOSTNAME=127.0.0.1
-          
-          if "$PM2_BIN" describe "$APP_NAME" >/dev/null 2>&1; then
-            "$PM2_BIN" restart "$APP_NAME" \
-              --interpreter "$BUN_BIN" \
-              --update-env
+      
+          if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
+            pm2 restart "$APP_NAME" --update-env
           else
-            "$PM2_BIN" start server.js \
+            pm2 start server.js \
               --name "$APP_NAME" \
-              --interpreter "$BUN_BIN" \
+              --interpreter "$(which node)" \
               --time
           fi
-          
-          "$PM2_BIN" save
-
-          # Simpan lima release terbaru.
+      
+          pm2 save
+      
           cd "$APP_DIR/releases"
           ls -1dt */ 2>/dev/null | tail -n +6 | xargs -r rm -rf
-
+      
           REMOTE_SCRIPT
